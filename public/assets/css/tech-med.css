@@ -1,0 +1,219 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  html {
+    font-size: 62.5%;
+    font-family: Calibri, sans-serif;
+  }
+  
+  :root {
+    --body-bg-color: #f5f7f6;
+    --bg-color-2: #f9fafc;
+    --bg-color-3: #edf1f3;
+    --color-white: #fff;
+    --primary-color: #15cb70;
+    --primary-color-dark: #14ba67;
+    --text-color: #33343f;
+    --text-color-2: #535762;
+    --text-color-3: #a9abaf;
+  }
+  
+  body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: var(--body-bg-color);
+    background: linear-gradient(
+      90deg,
+      var(--text-color) 0% 50%,
+      var(--primary-color) 50% 100%
+    );
+  }
+  .container {
+    width: 1000px;
+    height: 700px;
+    background-color: var(--bg-color-3);
+    border-radius: 10px;
+    box-shadow: 10px 20px 40px rgba(0, 0, 0, 0.088);
+    overflow: hidden;
+  }
+  
+  .header-section {
+    width: 100%;
+    height: 70px;
+    background-color: var(--bg-color-2);
+    display: flex;
+    justify-content: space-between;
+    padding: 0 40px;
+    align-items: center;
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.037);
+  }
+  
+  .header-section .nav ul {
+    display: flex;
+    list-style: none;
+    font-size: 1.5rem;
+    gap: 20px;
+  }
+  
+  .nav ul li a {
+    color: var(--text-color-3);
+    text-decoration: none;
+  }
+  .nav ul li a:hover {
+    color: var(--text-color-2);
+  }
+  
+  .header-section .logo svg {
+    height: 35px;
+    width: fit-content;
+  }
+  
+  .search-form .field-group {
+    background-color: #fff;
+    width: 350px;
+    display: flex;
+    align-items: center;
+    justify-content: space-evenly;
+    height: 50px;
+    overflow: hidden;
+    border-radius: 100px;
+    padding-right: 6px;
+    box-shadow: 3px 5px 20px rgba(0, 0, 0, 0.101);
+  }
+  
+  .field-group input {
+    font-size: 1.5rem;
+    font-family: inherit;
+    width: 100%;
+    padding: 0 20px;
+    border: none;
+    outline: none;
+    color: var(--text-color-2);
+  }
+  
+  .field-group input::placeholder {
+    color: var(--text-color-3);
+  }
+  
+  .field-group .search-btn {
+    height: 37px;
+    display: grid;
+    place-items: center;
+    width: 37px;
+    flex-shrink: 0;
+    border: none;
+    outline: none;
+    background-color: var(--primary-color);
+    color: #fff;
+    border-radius: 50%;
+    box-shadow: 2px 2px 10px #0fab5d72;
+    cursor: pointer;
+  }
+  .field-group .search-btn:hover {
+    background-color: #13c56c;
+  }
+  .field-group .search-btn .icon-svg {
+    width: 18px;
+  }
+  
+  .main-section {
+    display: grid;
+    width: 100%;
+    height: calc(100% - 120px);
+    margin-top: 25px;
+    grid-template-columns: 1.2fr 2fr;
+    padding: 20px;
+  }
+  .main-section .result-section {
+    height: 100%;
+    overflow-y: auto;
+  }
+  .main-section .result-section::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .result-section .result {
+    height: 120px;
+    width: 80%;
+    background-color: #fff;
+    border-radius: 10px;
+    margin: auto;
+    box-shadow: 10px 10px 20px rgba(0, 0, 0, 0.073);
+  }
+  
+  .result:not(:last-child) {
+    margin-bottom: 20px;
+  }
+  
+  .result .result-header {
+    display: flex;
+    height: 40px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.068);
+  }
+  
+  .result-header .shop-name {
+    color: black;
+    font-size: 1.5rem;
+    font-weight: bold;
+  }
+  .result-header .price {
+    color: var(--text-color-3);
+    font-size: 1.2rem;
+  }
+  
+  .result .res-main {
+    display: flex;
+    align-items: center;
+    height: calc(100% - 50px);
+    padding: 0 20px;
+    justify-content: space-between;
+  }
+  
+  .res-main .info-section {
+    display: flex;
+    flex-direction: column;
+    color: var(--text-color-2);
+    font-size: 1.2rem;
+  }
+  .info-section .med-name {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--text-color);
+  }
+  
+  .info-section .mfg {
+    margin-top: 5px;
+  }
+  
+  .res-main .control-section {
+    display: grid;
+    place-items: center;
+  }
+  .control-section .direction-btn {
+    width: 50px;
+    height: 50px;
+    padding: 12px;
+    background-color: var(--primary-color);
+    border-radius: 10px;
+    box-shadow: 2px 3px 10px #0fab5d72;
+  }
+  
+  .direction-btn svg {
+    width: 100%;
+    fill: white;
+  }
+  
+  #app-map {
+    height: 100%;
+    width: 550px;
+    margin: auto;
+  }
+  

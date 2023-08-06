@@ -1,0 +1,232 @@
+a {
+  color: #f4fad9; 
+}
+a:hover {
+  background-color: yellow;
+}
+
+.burgernavheader {
+  margin-left: auto;
+  
+  width: 75%;
+  margin-top: -30px;
+  position: fixed;
+  font-family: cursive, bold;
+  
+  padding-left: 15px;
+  text-align: center;
+  color: #99ffcc;
+  font-size: 1.0rem;
+  z-index: 10;
+}
+
+#sidebarMenu {
+  position: fixed;
+  left: -40px;
+  width: 340px;
+  height: 100%;
+  transform: translateX(-340px);
+  transition: transform 250ms ease-in-out;
+  background-color: #99ffcc;
+  overflow-y: auto;
+}
+
+.sidebarMenuInner {
+/*  margin-top: 150px;*/
+/*  padding: 0;*/
+  border-top: 1px solid;
+  overflow: auto;
+}
+
+.sidebarMenuInner li {
+  list-style: none;
+  color: #000;
+  text-transform: uppercase;
+  font-weight: bold;
+  padding: 20px;
+  cursor: pointer;
+  border-bottom: 1px solid ;
+}
+
+.sidebarMenuInner li span {
+  display: block;
+  font-size: 14px;
+  color: #000;
+}
+
+.sidebarMenuInner li a {
+  color: #000;
+  text-transform: uppercase;
+  font-weight: bold;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+input[type="checkbox"]:checked ~ #sidebarMenu { transform: translateX(0); }
+
+input[type=checkbox] {
+  transition: all 0.3s;
+  box-sizing: border-box;
+  display: none;
+}
+
+.sidebarIconToggle {
+  transition: all 0.3s;
+  box-sizing: border-box;
+  cursor: pointer;
+  position: absolute;
+  z-index: 99;
+  margin-top: -7px;
+  padding-left: 7px;
+  padding-right: 7px;
+  padding-top: 5px;
+  padding-bottom:10px;
+  left: -15px;
+  width: 5%;
+  background-color: #343a40 !important;
+}
+
+.spinner {
+  transition: all 0.3s;
+  box-sizing: border-box;
+  position: absolute;
+  height: 3px;
+  width: 100%;
+  background-color: #fff;
+}
+
+.horizontal {
+  position: relative;
+  transition: all 0.3s;
+  box-sizing: border-box;
+  height: 4px;
+  float: left;
+  margin-top: 5px;
+}
+
+.diagonal.part-1 {
+  position: relative;
+  transition: all 0.3s;
+  box-sizing: border-box;
+  height: 3px;
+  float: left;
+  margin-top: 4px;
+}
+
+.diagonal.part-2 {
+  position: relative;
+  transition: all 0.3s;
+  box-sizing: border-box;
+  height: 4px;
+  float: left;
+  margin-top: 5px;
+}
+
+input[type=checkbox]:checked ~ .sidebarIconToggle > .horizontal {
+  transition: all 0.3s;
+  box-sizing: border-box;
+  opacity: 0;
+}
+
+input[type=checkbox]:checked ~ .sidebarIconToggle > .diagonal.part-1 {
+  transition: all 0.3s;
+  box-sizing: border-box;
+  transform: rotate(135deg);
+  margin-top: 8px;
+}
+
+input[type=checkbox]:checked ~ .sidebarIconToggle > .diagonal.part-2 {
+  transition: all 0.3s;
+  box-sizing: border-box;
+  transform: rotate(-135deg);
+  margin-top: -9px;
+}
+
+/* footer , mydocfooter {
+  display: inline;
+  font-family: monospace;
+  padding-top: 10px;
+  padding-bottom: 60px;
+  text-align: center;
+  background: linear-gradient(to right, #191970, #00008B);
+  font-size:1rem;
+  color: white;
+}
+.mydocfooter .footerblock-1 {
+  display: block;
+} */
+
+.mydocfooter {
+  background: linear-gradient(to right, #5f43b0, #2e2e99, #00008B, #00008B, #2e2e99, #5f43b0);
+  /* background: linear-gradient(to right, #191970, #00008B); */
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.mydocfooter p {
+  font-size: 10px;
+  text-align: center;
+  color: rgb(234, 234, 234);
+  margin: 0;
+  width: inherit;
+}
+.mydocfooter p span{
+  font-size: 08px;
+  text-align: center;
+  color: rgb(234, 234, 234);
+  margin: 0;
+}
+
+.footerblock-1,
+.footerblock-2,
+.footerblock-3 {
+  width: calc(100% / 3 - 20px);
+  margin: 10px;
+  text-align: center;
+}
+
+.footerblock-1 h7,
+.footerblock-2 h7,
+.footerblock-3 h7 {
+  font-size: 14px;
+  font-weight: 700;
+  color: rgb(234, 234, 234);
+  margin-bottom: 10px;
+}
+
+.footerblock-1 li,
+.footerblock-2 li,
+.footerblock-3 li {
+  list-style: none;
+  margin-bottom: 5px;
+}
+
+.footerblock-1 a,
+.footerblock-2 a,
+.footerblock-3 a {
+  /* color: #333; */
+  color: rgb(234, 234, 234);
+  font-size: 12px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.footerblock-1 a:hover,
+.footerblock-2 a:hover,
+.footerblock-3 a:hover {
+  color: #007bff;
+}
+
+.fa-brands,
+.fa-light {
+  font-size: 20px;
+  margin-right: 5px;
+}
+
+/* h7 {
+  margin-top: 0;
+  margin-bottom: 10px;
+} */
