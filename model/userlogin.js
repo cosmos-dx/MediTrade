@@ -275,25 +275,29 @@ function MongoConnect(getuseraddress){
 
 
 app.get('/',(req,res) => { 
-   var info = ''; 
-   rscr['title']='RMS-Shop';
-   rscr['header']='WellCome Page';
-  // >>> Below Data must fetch from database using limit clause
-  var dbitemobj = {0:{"id":0, "img":"/public/assets/img/products/f1.jpg", "distance":"100", "shop":"Jai Durga Medical Store", "descr":"Min 15 Percent Discount on All Medicines", "rcount":"100 Review", "keywords":"", "dis":"10%", "class":"1", "unit":"Meter", "star":5},
-   1:{"id":1,"img":"/public/assets/img/products/f2.jpg", "distance":"150", "shop":"Onkar Medical Store", "descr":"Genuine Discount Available", "rcount":"100 Review", "keywords":"", "dis":"10%", "class":"1", "unit":"Meter", "star":4},
-   2:{"id":2,"img":"/public/assets/img/products/f3.jpg", "distance":"60", "shop":"Praveen Medical Store", "descr":"Trusted Shop", "rcount":"100 Review", "keywords":"", "dis":"10%", "class":"2", "unit":"Meter", "star":5},
-   3:{"id":3,"img":"/public/assets/img/products/f4.jpg", "distance":"200", "shop":"Kishan Medical Store", "descr":"Generic Medicines Also Available Here", "rcount":"100 Review", "keywords":"", "dis":"10%", "class":"3", "unit":"Meter", "star":3},
-   4:{"id":4,"img":"/public/assets/img/products/f5.jpg", "distance":"5567", "shop":"Chitra Medical Store", "descr":"Home Delivery Available Here", "rcount":"100 Review", "keywords":"", "dis":"10%", "class":"2", "unit":"Meter", "star":4},
-   5:{"id":5,"img":"/public/assets/img/products/f6.jpg", "distance":"356", "shop":"Kumbh Medical Store", "descr":"Upto 70-50% Discount Available", "rcount":"100 Review", "keywords":"", "dis":"10%", "class":"1", "unit":"Meter", "star":3},
-   6:{"id":6,"img":"/public/assets/img/products/f7.jpg", "distance":"211", "shop":"Astri Medical Store", "descr":"All Medicines are Available Here", "rcount":"100 Review", "keywords":"", "dis":"10%", "class":"7", "unit":"Meter", "star":4},
-   7:{"id":7,"img":"/public/assets/img/products/f8.jpg", "distance":"23", "shop":"Dashmesh Medical Store", "descr":"", "rcount":"100 Review", "keywords":"", "dis":"10%", "class":"12", "unit":"Meter", "star":5},
-   8:{"id":8,"img":"/public/assets/img/products/f9.jpg", "distance":"345", "shop":"Kapil Medical Store", "descr":"Get Well Soon !", "rcount":"100 Review", "keywords":"", "dis":"10%", "class":"22", "unit":"Meter", "star":4},
- }
-  var ourlocation = {0:"Ghaziabad",1:"Noida",2:"New Delhi",3:"Lucknow",4:"Kanpur",5:"Gorakhpur",6:"Deoria",7:"PokharBhinda"};
-  rscr['row1']=dbitemobj;
-  rscr['ourlocation']=ourlocation;
-  rscr['cartitems']='0';
-  res.render('medipages/tech-med',{rscr:rscr})
+
+//    var info = ''; 
+//    rscr['title']='RMS-Shop';
+//    rscr['header']='WellCome Page';
+//   // >>> Below Data must fetch from database using limit clause
+//   var dbitemobj = {0:{"id":0, "img":"/public/assets/img/products/f1.jpg", "distance":"100", "shop":"Jai Durga Medical Store", "descr":"Min 15 Percent Discount on All Medicines", "rcount":"100 Review", "keywords":"", "dis":"10%", "class":"1", "unit":"Meter", "star":5},
+//    1:{"id":1,"img":"/public/assets/img/products/f2.jpg", "distance":"150", "shop":"Onkar Medical Store", "descr":"Genuine Discount Available", "rcount":"100 Review", "keywords":"", "dis":"10%", "class":"1", "unit":"Meter", "star":4},
+//    2:{"id":2,"img":"/public/assets/img/products/f3.jpg", "distance":"60", "shop":"Praveen Medical Store", "descr":"Trusted Shop", "rcount":"100 Review", "keywords":"", "dis":"10%", "class":"2", "unit":"Meter", "star":5},
+//    3:{"id":3,"img":"/public/assets/img/products/f4.jpg", "distance":"200", "shop":"Kishan Medical Store", "descr":"Generic Medicines Also Available Here", "rcount":"100 Review", "keywords":"", "dis":"10%", "class":"3", "unit":"Meter", "star":3},
+//    4:{"id":4,"img":"/public/assets/img/products/f5.jpg", "distance":"5567", "shop":"Chitra Medical Store", "descr":"Home Delivery Available Here", "rcount":"100 Review", "keywords":"", "dis":"10%", "class":"2", "unit":"Meter", "star":4},
+//    5:{"id":5,"img":"/public/assets/img/products/f6.jpg", "distance":"356", "shop":"Kumbh Medical Store", "descr":"Upto 70-50% Discount Available", "rcount":"100 Review", "keywords":"", "dis":"10%", "class":"1", "unit":"Meter", "star":3},
+//    6:{"id":6,"img":"/public/assets/img/products/f7.jpg", "distance":"211", "shop":"Astri Medical Store", "descr":"All Medicines are Available Here", "rcount":"100 Review", "keywords":"", "dis":"10%", "class":"7", "unit":"Meter", "star":4},
+//    7:{"id":7,"img":"/public/assets/img/products/f8.jpg", "distance":"23", "shop":"Dashmesh Medical Store", "descr":"", "rcount":"100 Review", "keywords":"", "dis":"10%", "class":"12", "unit":"Meter", "star":5},
+//    8:{"id":8,"img":"/public/assets/img/products/f9.jpg", "distance":"345", "shop":"Kapil Medical Store", "descr":"Get Well Soon !", "rcount":"100 Review", "keywords":"", "dis":"10%", "class":"22", "unit":"Meter", "star":4},
+//  }
+//   var ourlocation = {0:"Ghaziabad",1:"Noida",2:"New Delhi",3:"Lucknow",4:"Kanpur",5:"Gorakhpur",6:"Deoria",7:"PokharBhinda"};
+//   rscr['row1']=dbitemobj;
+//   rscr['ourlocation']=ourlocation;
+//   rscr['cartitems']='0';
+//   // res.render('medipages/tech-med',{rscr:rscr})
+//response.sendFile(path.join(__dirname + '/login.html'));
+let parentDirectory = Path.dirname(__dirname);
+  res.sendFile(Path.join(parentDirectory + '/public/dist/index.html'))
 });
 
 app.get('/mycart', function(req,res){
