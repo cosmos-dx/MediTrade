@@ -54,7 +54,7 @@ Git link here: https://github.com/cosmos-dx/MediTrade-frontEnd
 
 ## Contribution Guidelines
 
-We welcome contributions! If you'd like to contribute to MediTrade, please follow our [environment](https://github.com/cosmos-dx/MediTrade/blob/main/Contribution%20guidelines).
+We welcome contributions! If you'd like to contribute to MediTrade, please follow our [environment]([https://github.com/cosmos-dx/MediTrade/blob/main/Contribution%20guidelines](https://github.com/cosmos-dx/MediTrade/blob/main/Contribution%20guidelines.md).
 We believe multiple brains can lead us to a better results.
 
 
