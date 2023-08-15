@@ -11,67 +11,6 @@ app.set('views',__dirname + '/vws');
 
 
 
-
-// ========= Testing Area ============== //
-
-// var tclc = mlog.MongoConnect("123_1231231231_123");
-// // {"$match": { "igroup" : new RegExp("^" +textlike)} }; 
-// var frm ="2023-04-01";
-// var tod ="2023-04-30";
-// var rp = {_id: '6454b0fd1fd25b98d2ee2863',spid: '6454b0fd1fd25b98d2ee285f',ledgid: 'x644ba658d82040a5a6ed37eb',transid: '644ba6bfd82040a5a6ed3808',
-//           itype: '2',billautono: '',billno: 'S00005',billdate: '05/05/2023',cscr: 'CREDIT',csid: '644ba658d82040a5a6ed37f0',amount: '240',billas: 'M',
-//           cmnt: 'Hello',fyear: '0',name: 'MEDI TEC SAMPLE CUSTOMER',add1: 'SAMPLE ADDRESS 1',add2: 'SAMPLE ADDRESS 2',stcode: '09',regn: 'REG.N',
-//           gstn: '09FGHIJ0456K1ZM',mode: '2',mobile: '6666666666',invdate: '05/05/2023',gamt: '269',amt: '240',dbbilldate: '2023-05-05',
-//           dbinvdate: '2023-05-05',esti: 'M',ddisc: '0',dbcscr: '1',gtot: '269',tsubtot: '240',tamt: '240',tdisamt: '0',ttaxamt: '28.8'
-//         };
-
-// var cscr = rp["cscr"];
-// var fyear = 0;
-
-// function pay_rcpt_cash_update(db, typ, rp, cr, dr, fyear){
-//   const cfilter = {"transid":rp["transid"],"ledgid":rp["ledgid"]};
-//   const cupdate = {"$set": {"type":typ, "billno":rp["billno"], "credit":cr,"debit":dr,"date":rp["dbbilldate"],"comment":rp["cmnt"]}};
-//   const cinsert = {"cashid":0, "ledgid":rp["ledgid"], "transid":rp["transid"],"type":typ, "billno":rp["billno"], 
-//                   "credit":cr,"debit":dr, "date":rp["dbbilldate"],"comment":rp["cmnt"]};
-//   const prupdate = {"$set": {"type":typ, "billno":rp["billno"], "credit":dr,"debit":cr,"date":rp["dbbilldate"]}};
-//   const prinsert = {"prid":0, "ledgid":rp["ledgid"], "transid":rp["transid"],"vautono":"","type":typ,"cash":0,
-//                    "billno":rp["billno"], "credit":dr,"debit":cr,"date":rp["dbbilldate"],"status":0, "fyear":fyear,};
-
-//   if(rp["cscr"] == 'CASH'){
-//     db["pr"].deleteOne(cfilter).then(function(result){}); // have to delete pay_rcpt document if exists or not
-//     db["cash"].find(cfilter).toArray().then(function(cdata){
-//       if(cdata.length>0){
-//         db["cash"].updateOne(cfilter, cupdate).then(function(cupdt){})
-//         // "UPDATE cash document Here because data Exists";
-//       }else{
-//         cinsert["cashid"]= new ObjectId().toString(); // updating required cashid 
-//         db["cash"].insertOne(cinsert).then(function(cinsert){})
-//         // "Insert cash document Here because data NOT-Exists";
-//       }
-//     })
-//   }
-//   if(rp["cscr"] == 'CREDIT'){
-//     db["cash"].deleteOne(cfilter).then(function(result){});
-//     if(rp['mode'] == 2){
-//       db["pr"].find(cfilter).toArray().then(function(prdata){
-//         if(prdata.length>0){
-//           db["pr"].updateOne(cfilter, prupdate).then(function(pr_updt){})
-//           // "UPDATE pay_rcpt document Here because data Exists";
-//         }else{
-//           prinsert["prid"]= new ObjectId().toString(); // updating required prid 
-//           db["pr"].insertOne(prinsert).then(function(pr_insert){})
-//           // "Insert pay_rcpt document Here because data NOT-Exists";
-//         }
-//       })
-//     }
-//   }
-// };
-
-//pay_rcpt_cash_update(tclc[0], "2", rp, 0, parseFloat(rp["gtot"]), fyear);
-
-
-// ========= Testing Area ============== //
-
 app.get('/partysearchenter',function(req,res){ 
   var column = "name";
  
@@ -108,7 +47,6 @@ app.get('/partysearchenter',function(req,res){
  
 
 app.get('/itemsearchenter',function(req,res){
-
   var column = "name";
   var idf = req.query.idf.trim(); // removal of white space is important
   
@@ -119,7 +57,6 @@ app.get('/itemsearchenter',function(req,res){
     column = req.query.getcolumn;
   }
   var limit = parseInt(req.query.limit);
-
   qry.csfind_by_name(mlog.tclc, "GET", idf, req.query.name.toUpperCase(), column, limit, function(data){
         res.send(JSON.stringify(data));
     });
@@ -162,74 +99,145 @@ app.post('/sppartysearch',function(req,res){
     });
 });
 
-var seditdata = {};
+app.get('/speditcalculate', async function (req, res) {
+  try {
+    var rscr = req.session.cookie.rscr;
+    let transid = req.query.transid;
+    let ledgid = req.query.ledgid;
+    let fyear = req.query.fyear;
+    let cgst = 0;
+    let sgst = 0;
+    let ttaxamt = 0;
+    let tsubtot = 0;
+    let tdisamt = 0;
+    let gtot = 0;
+    let roundoff = 0;
+    let roundnetamt = 0;
+    var grididarr = [];
+    let tamt = 0;
 
-app.get('/speditcalculate',function(req,res){
-  
-  var rscr = req.session.cookie.rscr;
-  let db = mlog.db;
-  let transid = req.query.transid ;
-  let ledgid = req.query.ledgid ;
-  let fyear = req.query.fyear ;
-  let billdt = req.query.dt ;
-  let invdt = req.query.invdt ;
-  let billno = req.query.billno ;
-  let tabpur = "purchase"
-  let tabsale = "sales"
-  let tabcs = "suppliers" 
-  let tabitem = "products"
-  let tabpit = "purchase_item"
-  let tabsit = "sales_item"
-  let dtformat = "%b/%y";
-  let stk = "stock";
-  let gamt = req.query.gamt ;
-  
-  if (req.query.idf == "supplier"){
-        qry.SPINFO(mlog.tclc, ledgid, transid, "sup", "pur", "pitm", fyear, 
-          function(err, rows, itemrows, acrows){
-            if(rows){
-              
-              rows[0]['gamt'] = gamt;
-              rows[0]['amt'] = 0;
-              rscr['cssearch']==='purchase'
-              rscr['cs']="supplier";
+    let cscrobj = {
+      "1": "CASH",
+      "2": "CREDIT",
+      "3": "CHALLAN",
+      "": "CASH",
+      1: "CASH",
+      2: "CREDIT",
+      3: "CHALLAN",
+    };
 
-              rscr["recdic"]["pan"]=rows[0];
-              rscr["recdic"]["grid"]=itemrows;
-              rscr["recdic"]["ac"]=acrows;
-              rscr["recdic"]["edit"]=true;
-              res.send(JSON.stringify(rscr["recdic"]));
-              //res.end(JSON.stringify(seditdata));
-            }
-          });
+    if (req.query.idf == "supplier") {
+      let [rows, itemrows, acrows] = await qry.SPINFO(
+        mlog.tclc,
+        ledgid,
+        transid,
+        "sup",
+        "pur",
+        "pitm",
+        fyear
+      );
+      console.log(itemrows);
+
+      if (rows) {
+        rows[0]['tamt'] = tamt;
+        rows[0]['amt'] = 0;
+        rscr['cssearch'] = 'purchase';
+        rscr['cs'] = 'supplier';
+
+        rscr["recdic"]["pan"] = rows[0];
+        rscr["recdic"]["grid"] = itemrows;
+        rscr["recdic"]["ac"] = acrows;
+        rscr["recdic"]["edit"] = true;
+        rscr["recdic"]["pan"]["dis"] = 0;
+
+        rscr["recdic"]["grid"].forEach((obj, i) => {
+          gtot += parseFloat(obj.netamt);
+          tamt += parseFloat(obj.amttot || 0);
+          cgst += parseFloat(obj.cgst || 0);
+          sgst += parseFloat(obj.sgst || 0);
+          ttaxamt += parseFloat(obj.ttaxamt || 0);
+          tsubtot += parseFloat(obj.amt || 0);
+          tdisamt += parseFloat(obj.tdisamt || 0);
+          grididarr.push({ id: i });
+        });
+
+        roundnetamt = gtot.toFixed(0);
+        roundoff = parseFloat(roundnetamt) - gtot;
+
+        for (const[k, v] of Object.entries({"gtot": parseFloat(gtot), "cgst" : cgst, "sgst": sgst, "ttaxamt" : ttaxamt, 
+                                  "tsubtot":tsubtot, "tamt":tamt, "tdisamt":tdisamt, "roundoff":roundoff, "grididarr":grididarr})){
+                rscr["recdic"]["pan"][k]=v;
+               }
+
+        rscr["recdic"]["pan"]["gtot"] = rscr["recdic"]["pan"]["amount"];
+        rscr["recdic"]["pan"]["dbcscr"] = rscr["recdic"]["pan"]["cscr"];
+        rscr["recdic"]["pan"]["cscr"] = cscrobj[rscr["recdic"]["pan"]["cscr"]];
+
+        res.send(JSON.stringify(rscr["recdic"]));
+      }
+    }
+
+    if (req.query.idf == "customer") {
+      let [rows, itemrows, acrows] = await qry.SPINFO(
+        mlog.tclc,
+        ledgid,
+        transid,
+        "cust",
+        "sale",
+        "sitm",
+        fyear
+      );
+
+      rows[0]['tamt'] = tamt;
+      rows[0]['amt'] = 0;
+      rscr['cssearch'] = "sale";
+      rscr['cs'] = "customer";
+      rscr["recdic"]["pan"] = rows[0];
+      rscr["recdic"]["grid"] = itemrows;
+      rscr["recdic"]["ac"] = acrows;
+      rscr["recdic"]["edit"] = true;
+      rscr["recdic"]["pan"]["dis"] = 0;
+
+      rscr["recdic"]["grid"].forEach((obj, i) => {
+        gtot += parseFloat(obj.netamt);
+        tamt += parseFloat(obj.amttot || 0);
+        cgst += parseFloat(obj.cgst || 0);
+        sgst += parseFloat(obj.sgst || 0);
+        ttaxamt += parseFloat(obj.ttaxamt || 0);
+        tsubtot += parseFloat(obj.amt || 0);
+        tdisamt += parseFloat(obj.tdisamt || 0);
+        grididarr.push({ id: i });
+      });
+
+      roundnetamt = gtot.toFixed(0);
+      roundoff = parseFloat(roundnetamt) - gtot;
+
+      for (const [k, v] of Object.entries({
+        "gtot": parseFloat(gtot),
+        "cgst": cgst,
+        "sgst": sgst,
+        "ttaxamt": ttaxamt,
+        "tsubtot": tsubtot,
+        "tamt": tamt,
+        "tdisamt": tdisamt,
+        "roundoff": roundoff,
+        "grididarr": grididarr
+      })) {
+        rscr["recdic"]["pan"][k] = v;
       }
 
-  if (req.query.idf == "customer"){
-    qry.SPINFO(mlog.tclc, ledgid, transid, "cust", "sale", "sitm", fyear, 
-          function(err, rows, itemrows, acrows){
-            rows[0]['gamt'] = gamt;
-            rows[0]['amt'] = 0;
-            rscr['cssearch']="sale";
-            rscr['cs']="customer";
-            rscr["recdic"]["pan"]=rows[0];
-            rscr["recdic"]["grid"]=itemrows;
-            rscr["recdic"]["ac"]=acrows;
-            rscr["recdic"]["edit"]=true;
+      rscr["recdic"]["pan"]["gtot"] = rscr["recdic"]["pan"]["amount"];
+      rscr["recdic"]["pan"]["dbcscr"] = rscr["recdic"]["pan"]["cscr"];
+      rscr["recdic"]["pan"]["cscr"] = cscrobj[rscr["recdic"]["pan"]["cscr"]];
 
-            res.send(JSON.stringify(rscr["recdic"]));
-            // res.send(JSON.stringify(seditdata));
-          });
-      }
-  });
-
-app.get('/spedit',function(req,res){
-  var rscr = req.session.rscr;
-  try{
-      // res.render('medipages/spmaster', {spinfo: rscr, prows:seditdata['prows'][0], 
-      // itemrows:seditdata['itemrows'], acrows:seditdata['acrows'], spedit: true});
-      res.render('medipages/spmaster', {spinfo:rscr, "spedit":true});
-  }catch(err){}  
-  });
+      res.send(JSON.stringify(rscr["recdic"]));
+    }
+  } catch (error) {
+    // Handle errors here
+    console.error(error);
+    res.status(500).send("Internal Server Error");
+  }
+});
 
 app.post('/sendbilltodb', (req, res) => {
   
@@ -240,17 +248,19 @@ app.post('/sendbilltodb', (req, res) => {
   var gridArray = Object.values(redicdata.grid);
   redicdata.grid = gridArray;
   var main = req.body.main; 
-  // console.log("--------------------recdic pan---------------->",redicdata.pan);
-  // console.log("--------------------recdic grid---------------->",redicdata.grid);
-  // console.log("--------->> stockarray >>>> ",redicdata.grid[0]['stockarray'])
+
   if(typeof(main) === "undefined"){
     //main true for Cash dbcscr 1 credit false for challan
     main = true;
   }
-  
-  qry.csfinalbill(mlog.tclc, idf, redicdata, mode, main, function(){
-        res.send(JSON.stringify(redicdata));
-    });
+  qry.csfinalbill(mlog.tclc, idf, redicdata, mode, main, async function(data) {
+    const isSuccess = data.every(value => value === true);
+    if (isSuccess) {
+        res.json({"success": true});
+    } else {
+        res.json({"success": false});
+    }
+});
   
 });
 
@@ -261,7 +271,7 @@ app.get('/addtodb',function(req,res){
   var column = req.query.getcolumn;
   var limit = req.query.limit;
   var mode = req.query.mode;
- 
+  console.log(idf, text, column, limit, mode);
   qry.add_to_db(mlog.tclc, idf, text, column, mode, limit, function(data){
         res.send(JSON.stringify(data));
     });
@@ -274,6 +284,11 @@ app.post('/getTotalsp', async function(req, res){
   var data = 0.0;
   var idf = req.body.idf;
   var coll = "pur";
+
+  if (!frm || !tod || !idf) {
+    res.json({});
+    return;
+  }
   if(idf === "sales" || idf === "customer") {
     coll = "sale";
   }
@@ -303,7 +318,7 @@ app.post('/getTotalsp', async function(req, res){
       finresult.then(function(val){
         if(val.length > 0){
           datatosend['name'] = val[0]['name'];
-          res.header("Access-Control-Allow-Origin", "*").json(datatosend);
+          res.json(datatosend);
         }
         
       })
@@ -313,7 +328,7 @@ app.post('/getTotalsp', async function(req, res){
   }
   else if (idf === "products") {
     const resultArr = await mlog.tclc['itm'].find({}).toArray();
-    res.header("Access-Control-Allow-Origin", "*").json(resultArr.length);
+    res.json(resultArr.length);
     return;
   }
   else if (idf === "recentsale") {
@@ -339,7 +354,7 @@ app.post('/getTotalsp', async function(req, res){
   
       data.push(datatosend);
     }
-    res.header("Access-Control-Allow-Origin", "*").json(data);
+    res.json(data);
     return;
   }
   try{
@@ -371,13 +386,9 @@ app.post('/getTotalsp', async function(req, res){
   for (const obj of resul) {
     data += obj.amount;
   }
-  res.header("Access-Control-Allow-Origin", "*").json({ [req.body.idf] : data});
+  res.json({ [req.body.idf] : data});
 
 })
-  
-
-
-
 app.post('/addtodb',function(req,res){
   var rscr = req.session.rscr;
   var idf = req.body.cs ;
@@ -385,11 +396,12 @@ app.post('/addtodb',function(req,res){
   var column = req.body.getcolumn;
   var limit = 1;
   var mode = req.body.mode;
+  console.log(idf, text, column, mode, limit);
   qry.add_to_db(mlog.tclc, idf, text, column, mode, limit, function(data){
         res.send(JSON.stringify(data));
-    });
-
   });
+
+});
 
 app.post('/adduserinfo', function(req, res){
   var rscr =  req.session.rscr;
@@ -482,5 +494,115 @@ app.post('/ledgersearch', function(req, res){
 
 });
 
+app.post('/gstreports', function(req,res){
+  var rscr = req.session.cookie.rscr;
+  var frm = req.body.frm; //"2021-01-01";
+  var tod = req.body.tod; //"2025-01-01";
+  var ledgid = req.body.ledgid; //"";
+  var billas= req.body.billas; //['I', 'M'];
+  var itype = req.body.itype; //["1","2"]; 
+  var fyear = rscr.fyear; //0;
+  var sp = req.body.sp; //"sale";
+  var gsttable = req.body.gsttable;
+  var typ = "report";
+  //var taxslab = ["12", "5", "18"];
+  var taxslab = req.body.taxslab; //[0, 5, 12, 18, 28]; // tax rate must include array of integers;
+  var agreegate = req.body.agreegate;
+  var idf = req.body.idf;
+  if(Object.keys(mlog.tclc).length>0){
+      
+      qry.GST_REPORT(mlog.tclc, ledgid, billas, itype, frm, tod, sp, typ, taxslab, fyear, async function(data){
+      //var newobj = {0:[], 5:[], 12:[], 18:[], 28:[]};
+        if(gsttable==="b2cs"){
+          var newobj = {0:{"gst":0,"netamt":0,"amt":0,"cgst":0,"sgst":0,"tdisamt":0,"qty":0,"taxcount":0,"-":"","--":"","---":"","":"",}, 
+                        5:{"gst":5,"netamt":0,"amt":0,"cgst":0,"sgst":0,"tdisamt":0,"qty":0,"taxcount":0,"-":"","--":"","---":"","":"",},
+                        12:{"gst":12,"netamt":0,"amt":0,"cgst":0,"sgst":0,"tdisamt":0,"qty":0,"taxcount":0,"-":"","--":"","---":"","":"",},
+                        18:{"gst":18,"netamt":0,"amt":0,"cgst":0,"sgst":0,"tdisamt":0,"qty":0,"taxcount":0,"-":"","--":"","---":"","":"",},
+                        28:{"gst":28,"netamt":0,"amt":0,"cgst":0,"sgst":0,"tdisamt":0,"qty":0,"taxcount":0,"-":"","--":"","---":"","":"",},};
+          for (const[k, v] of Object.entries(data)){
+            newobj[v["gst"]]["netamt"] += v.netamt;
+            newobj[v["gst"]]["amt"] += v.amt;
+            newobj[v["gst"]]["cgst"] += v.cgst;
+            newobj[v["gst"]]["sgst"] += v.sgst;
+            newobj[v["gst"]]["tdisamt"] += v.tdisamt;
+            newobj[v["gst"]]["qty"] += v.qty;
+            newobj[v["gst"]]["taxcount"] += 1;
+          }
+          res.header("Access-Control-Allow-Origin", "*").json(Object.values(newobj));
+          //console.log(Object.values(newobj))
+        }
+        else{
+          if(agreegate){
+            var newobj = {};
+            for (const[k, v] of Object.entries(data)){
+              newobj[v["ledgid"]]={"billno":"", "billdate":"", "name":"", "gstn":"", "stcode":"","itemname":"", 
+                                  "gst":0,"netamt":0,"amt":0,"cgst":0,"sgst":0,"tdisamt":0,"qty":0,"taxcount":0,}
+              newobj[v["ledgid"]]["netamt"] += v.netamt;
+              newobj[v["ledgid"]]["amt"] += v.amt;
+              newobj[v["ledgid"]]["cgst"] += v.cgst;
+              newobj[v["ledgid"]]["sgst"] += v.sgst;
+              newobj[v["ledgid"]]["tdisamt"] += v.tdisamt;
+              newobj[v["ledgid"]]["qty"] += v.qty;
+              newobj[v["ledgid"]]["taxcount"] += 1;
+            }
+            res.header("Access-Control-Allow-Origin", "*").json(Object.values(newobj));
+          }
+          else{
+            res.header("Access-Control-Allow-Origin", "*").json(Object.values(data));
+          }
+          //console.log("====>>>>> ", Object.values(data));
+        }
+      });
+  }
+  else{
+    res.header("Access-Control-Allow-Origin", "*").json({});
+  }
+
+});
+
+async function PRSearch(db, idf, sp, typ, trtype, ledgid, fyear, callback){
+  filter = {"ledgid":ledgid,"fyear":fyear,"type":typ,"trtype":trtype};
+  var getboth = {"partybalance":{"balance":0}, "totalbalance":{"balance":0},};
+  const data = await db["trns"].find(filter).toArray();
+  for(let i=0; i<data.length; i++){
+    if(!isNaN(data[i].debit-data[i].credit)){
+      getboth["partybalance"]["balance"]+=(data[i].debit-data[i].credit);
+    }
+  };
+  const data2 = await db["cash"].find({"fyear":fyear}).toArray();
+  for(let i=0; i<data2.length; i++){
+    if(!isNaN(data2[i].debit-data2[i].credit)){
+      getboth["totalbalance"]["balance"]+=(data2[i].debit-data2[i].credit);
+    }
+  }
+  callback(getboth);
+}
+
+app.post('/payrcptsearch', function(req,res){
+  console.log("sdfsdf");
+  var rscr = req.session.cookie.rscr;
+  var idf = req.body.idf; 
+  var sp = req.body.sp; 
+  var ledgid = req.body.ledgid; 
+  var fyear = rscr.fyear; 
+  var typ = 2; // typ = {1:"purchase",2:"sale",3:"payment",4:"receipt",5:[reserved for cash table],6:"",7:"bank",8:"",9:""}
+  var trtype = "2"; //{"1":"cash transaction", "2":"credit transaction","3":"other account transaction","7":"bank transaction"};
+  if(sp==="receipt"){typ=2};
+  if(sp==="payment"){typ=1};
+  console.log("hiii");
+  if(Object.keys(mlog.tclc).length>0){
+    PRSearch(mlog.tclc, idf, sp, typ, trtype, ledgid, fyear, function(data){
+      console.log(data);
+      res.header("Access-Control-Allow-Origin", "*").json(data);
+    })
+  }
+  else{
+    res.header("Access-Control-Allow-Origin", "*").json({});
+  }
+  
+});
+
 
 module.exports.app = app
+
+

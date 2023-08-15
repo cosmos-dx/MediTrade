@@ -15,6 +15,7 @@ var naImgPath = "public//assets//img//na.jpg";
 var imgvalidator = {'img' : "", 'imgbool' : false, 'username':'', 'flag':'1'};
 
 const { MongoClient , ObjectId} = require('mongodb');
+const { log } = require('console');
 const options = {
   origin: "*",
   methods: ['GET', 'PUT', 'POST'],
@@ -233,6 +234,31 @@ function MemberConnect(){
   catch(e) {console.log(e);}
   return client.db("memberdb");
 }
+async function AdminConnect() {
+  const client = new MongoClient('mongodb://0.0.0.0:27017');
+  
+  try {
+    await client.connect();
+    const db = client.db("memberdb");
+    const adminCollection = db.collection('admin');
+    const adminCount = await adminCollection.countDocuments({});
+    
+    if (adminCount === 0) {
+      await adminCollection.insertOne({
+        username: 'controller',
+        password: 'iamcontroller224203',
+        role: 'admin',
+        resettoken: 'neverforgetthis'
+      });
+    }
+
+    return db; 
+    
+  } catch (e) {
+    console.log(e);
+    throw e;
+  }
+}
 
 function MongoConnect(getuseraddress){
   var url = 'mongodb://0.0.0.0:27017//'+getuseraddress;
@@ -295,9 +321,9 @@ app.get('/',(req,res) => {
 //   rscr['ourlocation']=ourlocation;
 //   rscr['cartitems']='0';
 //   // res.render('medipages/tech-med',{rscr:rscr})
-//response.sendFile(path.join(__dirname + '/login.html'));
-let parentDirectory = Path.dirname(__dirname);
-  res.sendFile(Path.join(parentDirectory + '/public/dist/index.html'))
+// //response.sendFile(path.join(__dirname + '/login.html'));
+// let parentDirectory = Path.dirname(__dirname);
+  // res.sendFile(Path.join(parentDirectory + '/public/rms_nodjs/index.html'))s
 });
 
 app.get('/mycart', function(req,res){
@@ -427,7 +453,42 @@ app.post('/medilogin', async function(request, response) {
   }
 });
 
+app.post('/adminlogin', async function(req, res) {
+  const username = req.body.username;
+  const pass = req.body.password;
 
+  if (username && pass) {
+    try {
+      const admindb = await AdminConnect(); 
+      const adminCollection = admindb.collection("admin");
+      const admin = await adminCollection.find({ "username": username, "password": pass }).toArray();
+      
+      if (admin.length > 0) {
+        res.json({ "success": true });
+      } else {
+        res.json({ "success": false });
+      }
+    } catch (error) {
+      console.log(error);
+      res.json({ "err": error });
+    }
+  }
+});
+
+app.post('/showdatatoadmin', async function (req, res){
+  const username = req.body.username;
+  const pass = req.body.password;
+  if(username && pass){
+    const mnogmemberdb = MemberConnect();
+    const result = await mnogmemberdb.collection("members").find({}).toArray()
+    if(result.length > 0){
+      res.json({"usersdata": result})
+    }
+  }
+  else{
+    res.json({"usersdata": [{"username": "you are unauthorized", "name": "You are unauthorised"}] })
+  }
+});
 app.post('/mediregister', function(request, response) {
     rscr = {'info':'', 'alert':"",'title':"MediTrade-Registration",
     'updatemediregister':false, 'mediregister':"New Registration",};
@@ -705,8 +766,7 @@ app.post('/selectfyear', function(req, res) {
     rscr["billseries"]["daterange"]=daterange;
     req.session.cookie.rscr = rscr;
     res.json(rscr);
-    req.session.cookie.rscr = rscr;
-    res.json(rscr)
+
   });
 
 module.exports.rscr = rscr

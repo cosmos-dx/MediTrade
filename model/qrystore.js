@@ -17,348 +17,443 @@ function getUniqueId(){
     if (myse < 10){myse = '0' + myse};
     if (myhh < 10){myhh = '0' + myhh};
     return [mydd,mymm,myyy,myhh,mymi,myse].join('');  
-  }
-  function ObjectIdCheck(inputid){ 
-	try{
-	  var noid = new ObjectId(inputid.toString()); // sample of string _id //'64379b11678cb10c923e890f';
-	  return noid;
-	}catch(err){
-	  return false;
-	}
-  };
+}
 
-  function DistinctQryResults(ydb, text, field, limit, sort){
-	//var setmatch = {"$match": { "igroup" : new RegExp("^" +textlike)} }; 
-	  var match = {"$match":{}}; 
-	  match["$match"][field]=new RegExp("^" +text); // fill on key field
-	  match["$match"][" "+field+" "]={$ne:""};	    // fill on key field with extra space otherwise this will overrite previous;
-	  var dstf = "$"+field; // dstf = Distinct Field;
-	  var xx = `${field}`;
-	  var group = JSON.parse(`{"$group":{"_id":null, "${field}":{"$addToSet":"$${field}"}}}`);
-	  var agr = [group,{$unwind:dstf},match,{$limit:limit},{$sort:{"_id":sort}},]; 
-	  var data = [];
-	  return ydb.aggregate(agr).toArray();
-	  }
-	
-	function CisDataReturn(db, table, colname, method, text, limit,){
-		data = []
-		const findResult = db["cust"].find({"name":new RegExp("^" +text, "i")}).limit(limit).toArray();
-		findResult.then(function(result){
-			if(method==="GET"){ 
-				for(var i=0; i<result.length; i++){data.push(result[i].name);}
-				  callback(data);
-			}else{
-				callback(result);
-			}  
-		});
-	};
+function DistinctQryResults(ydb, text, field, limit, sort){
+//var setmatch = {"$match": { "igroup" : new RegExp("^" +textlike)} }; 
+	var match = {"$match":{}}; 
+	match["$match"][field]=new RegExp("^" +text); // fill on key field
+	match["$match"][" "+field+" "]={$ne:""};	    // fill on key field with extra space otherwise this will overrite previous;
+	var dstf = "$"+field; // dstf = Distinct Field;
+	var xx = `${field}`;
+	var group = JSON.parse(`{"$group":{"_id":null, "${field}":{"$addToSet":"$${field}"}}}`);
+	var agr = [group,{$unwind:dstf},match,{$limit:limit},{$sort:{"_id":sort}},]; 
+	var data = [];
+	return ydb.aggregate(agr).toArray();
+	}
+
 
  
-	function add_to_db(db, idf, text, column, mode, limit, callback){
-		var data = []; 
-		
-		var qrystr = "";
-		var actype = 4; // profite-loss ; 3=Expense; 2:Liability; 1:Assests Account Types 
-		var sp_id = 1; // 1 for suppliers and 2 for customers
-	
-		if(mode==="search"){
-			if(idf==="compsupsearch"){
-				
-				const findResult1 = db["sup"].find({"ledgid": text[0],"mode":{"$eq":6} }).limit(1).toArray();
-				const findResult2 = db["sup"].find({"csid": text[1],"mode":{"$ne":6}}).limit(1).toArray();
-	
-				findResult2.then(function(result){
-					
-					if(result.length>0){data.push({"name":result[0]["name"]})}
-					else{data.push({"name":"N.A"})}
-				  findResult1.then(function(result){
-					
-					if(typeof(result) !== "undefined"){
-						data.push({"name":result[0]["name"]})
-					}
-					callback(data); 
-				  });
-				});
-				return true;
-				}
-	
-			if(idf==="hsn"){
-			  DistinctQryResults(db["itm"], text.toUpperCase(), "hsn", 5, -1).then(function(result){
-				for(var i=0; i<result.length; i++){data.push({"name":result[i]["hsn"]})}
-				callback(data); 	
-			  });
+async function add_to_db(db, idf, text, column, mode, limit, callback){
+	var data = []; 
+	var qrystr = "";
+	var actype = 4; // profite-loss ; 3=Expense; 2:Liability; 1:Assests Account Types 
+	var sp_id = 1; // 1 for suppliers and 2 for customers
+
+	if(mode==="search"){
+		if (idf === "compsupsearch") {
+			try {
+			  const findResult1 = await db["sup"].find({ "ledgid": text[0], "mode": { "$eq": 6 } }).limit(1).toArray();
+			  const findResult2 = await db["sup"].find({ "csid": text[1], "mode": { "$ne": 6 } }).limit(1).toArray();
+		  
+			  if (findResult2.length > 0) {
+				data.push({ "name": findResult2[0]["name"] });
+			  } else {
+				data.push({ "name": "N.A" });
+			  }
+		  
+			  if (typeof findResult1 !== "undefined") {
+				data.push({ "name": findResult1[0]["name"] });
+			  }
+		  
+			  callback(data);
 			  return true;
-				
+			} catch (error) {
+			  console.error("Error:", error);
+			  return false;
 			}
-			if(idf==="comp"){
-			  const findResult = db["sup"].find({"name":new RegExp("^" +text.toUpperCase(), "i"), "mode":{$eq:6}, }).sort({"_id":-1}).limit(5).toArray();
-			  findResult.then(function(result){
-				  callback(result) 
-				});
-			  return true;	
-			}
-			if(idf==="sup"){
-			  const findResult = db["sup"].find({"name":new RegExp("^" +text.toUpperCase(), "i"), "mode":{$ne:6}, }).sort({"_id":-1}).limit(5).toArray();
-			  findResult.then(function(result){
-				  callback(result) 
-				});
+		  }
+		  
+		  if (idf === "hsn") {
+			try {
+			  const result = await DistinctQryResults(db["itm"], text.toUpperCase(), "hsn", 5, -1);
+			  const data = result.map(item => ({ "name": item["hsn"] }));
+			  callback(data);
 			  return true;
+			} catch (error) {
+			  console.error("Error:", error);
+			  return false;
 			}
-			if(idf==="supplier_area"){
-			  DistinctQryResults(db["sup"], text.toUpperCase(), "area", 5, -1).then(function(result){
-				for(var i=0; i<result.length; i++){data.push({"name":result[i]["area"]})}
-				callback(data); 	
-			  });
+		  }
+		  
+		  if (idf === "comp") {
+			try {
+			  const findResult = await db["sup"].find({ "name": new RegExp("^" + text.toUpperCase(), "i"), "mode": { $eq: 6 } })
+				.sort({ "_id": -1 }).limit(5).toArray();
+			  callback(findResult);
 			  return true;
+			} catch (error) {
+			  console.error("Error:", error);
+			  return false;
 			}
-			if(idf==="customer_area"){
-			  DistinctQryResults(db["cust"], text.toUpperCase(), "area", 5, -1).then(function(result){
-				for(var i=0; i<result.length; i++){data.push({"name":result[i]["area"]})}
-				callback(data); 	
-			  });
+		  }
+		  
+		  if (idf === "sup") {
+			try {
+			  const findResult = await db["sup"].find({ "name": new RegExp("^" + text.toUpperCase(), "i"), "mode": { $ne: 6 } })
+				.sort({ "_id": -1 }).limit(5).toArray();
+			  callback(findResult);
 			  return true;
-				
+			} catch (error) {
+			  console.error("Error:", error);
+			  return false;
 			}
-	
-			if(idf==="items_igroup"){
-			  DistinctQryResults(db["itm"], text.toUpperCase(), "igroup", 5, -1).then(function(result){
-				for(var i=0; i<result.length; i++){data.push({"name":result[i]["igroup"]})}
-				callback(data); 	
-			  });
+		  }
+		  
+		  if (idf === "supplier_area") {
+			try {
+			  const result = await DistinctQryResults(db["sup"], text.toUpperCase(), "area", 5, -1);
+			  const data = result.map(item => ({ "name": item["area"] }));
+			  callback(data);
 			  return true;
+			} catch (error) {
+			  console.error("Error:", error);
+			  return false;
 			}
-			
-			if(idf==="items_irack"){
-				DistinctQryResults(db["itm"], text.toUpperCase(), "irack", 5, -1).then(function(result){
-				for(var i=0; i<result.length; i++){data.push({"name":result[i]["irack"]})}
-				callback(data); 	
-			  });
+		  }
+		  
+		  if (idf === "customer_area") {
+			try {
+			  const result = await DistinctQryResults(db["cust"], text.toUpperCase(), "area", 5, -1);
+			  const data = result.map(item => ({ "name": item["area"] }));
+			  callback(data);
 			  return true;
+			} catch (error) {
+			  console.error("Error:", error);
+			  return false;
 			}
-			
-			if(idf==="ITEMDBSEARCH"){}	
-			if (idf==="items"){
-				var textlike = text.toUpperCase() ;
-				const findResult = db["itm"].find({"name":new RegExp("^" +textlike, "i")}).limit(5).toArray();
-				findResult.then(function(result){
-					callback(result); 
-				  });
-				return true;
-				};
-	   
-			if (idf==="customer"){
-				var textlike = text.toUpperCase() ;
-				const findResult = db["cust"].find({"name":new RegExp("^" +textlike, "i")}).limit(5).toArray();
-				findResult.then(function(result){
-					callback(result); 
-				  });
-				return true;
-				
-				};
-			if (idf==="supplier"){
-				 var textlike = text.toUpperCase() ;
-				 const findResult = db["sup"].find({"name":new RegExp("^" +textlike, "i"), "mode":{"$ne":6}}).limit(5).toArray();
-				 findResult.then(function(result){
-					callback(result); 
-				  });
-				return true;
-				};
-			if(qrystr===""){
-				 callback([">>>*** Wrong Methods Check Again !"]);
-				 return true;
-				 }
-		}; 
-	
-		if(mode==="save"){
-			if (idf==="items"){
-				itemid = new ObjectID().toString();
-				var pnet = parseFloat(parseFloat(text['prate'])*((100+(12))/100)).toFixed(2);
-				var insertdict = {"itemid":itemid, "name": text['name'],"pack": text['pack'],"unit": text['unit'],"netrate": pnet,
-					"prate":parseFloat(text['prate']),"srate":parseFloat(text['srate']),"cgst":parseFloat(text['cgst']),
-					"sgst":parseFloat(text['sgst']),"gst":parseFloat(text['igst']),
-					"dis": "0.00","mrp": text['mrp'],"hsn": text['hsn'],"igroup": text['igroup'],
-					"irack": text['irack'],"compid": text['compid'],"csid": text['csid'],};
-				
-				//var pnet = 0; // purchase netrate  
-				if(text['addcomp']){
-					var compmode = 6;
-					sp_id = "6";   // 1 for suppliers and 2 for customers and 6 is reserved for companies
-					actype = "6";  // reserved Only for Company 
-					var ledgid = new ObjectID().toString();
-					var insertledgD = {"ledgid":ledgid, "ac_type":actype, "sale_pur_ID":sp_id};
-					var csid = new ObjectId().toString();
-					db["ledg"].insertOne(insertledgD).then(function(getledger){
-						// csid of customer/supplier/account is no longer required _id ==>> will act as csid  
-						var compdict = {"csid": csid,"ledgid": ledgid,"name": text['compname'],"add1":"",
-						"add2":"","add3":"","pincode":"","area":"","phone":"","email":"","offphone":"","pan":"",
-						"bal":"","regn":"","gstn":"","cmnt":"","mode":compmode};
-						insertdict["compid"]=ledgid; // ledgid is used as compid in products collection; DO NOT CHANGE its NAME/KEY-NAME
-						db["sup"].insertOne(compdict).then(function(result){
-							console.log(">>>> NEW COMAPNY ADDED WHILE CREATING NEW ITEM (qrystore 150)<<<< ")
-	
-							db["itm"].insertOne(insertdict).then(function(result){
-								callback([insertdict["name"]]);
-							});
-						});
-					  });
-					}else{
-						db["itm"].insertOne(insertdict).then(function(result){
-							callback([insertdict["name"]]);
-						});
-					} 
-				return true;
-				
+		  }
+		  
+
+		  if (idf === "items_igroup") {
+			try {
+			  const result = await DistinctQryResults(db["itm"], text.toUpperCase(), "igroup", 5, -1);
+			  const data = result.map(item => ({ "name": item["igroup"] }));
+			  callback(data);
+			  return true;
+			} catch (error) {
+			  console.error("Error:", error);
+			  return false;
 			}
-			if (idf==="customer"){
-				sp_id = "2";   // 1 for suppliers and 2 for customers 
-				actype = "4";  // profite-loss
-				var supmode = "2"; // 6 for company
-				var ledgid = new ObjectId().toString();
-				var insertledgD = {"ledgid":ledgid,"ac_type":actype, "sale_pur_ID":sp_id};
-				
-				db["ledg"].insertOne(insertledgD).then(function(getledger){
-					var csid = new ObjectId().toString();
-					
-					var insertdict = {"csid": csid,"ledgid": ledgid,"name": text['name'],"add1": text['add1'],
-					"add2": text['add2'],"add3": text['stcode'],"pincode": text['pincode'],"area": text['area'],
-					"phone": text['phone'],"email": text['email'],"offphone": text['offphone'],"pan": text['pan'],
-					"bal":parseFloat(text['obal']),"regn": text['regn'],"gstn": text['gstn'],"cmnt": text['cmnt'],
-					"mode":parseInt(text['mode'])};
-	
-					db["cust"].insertOne(insertdict).then(function(result){
-						callback([insertdict["name"]]);
-					});
-				  });
-				return true;
+		  }
+		  
+		  if (idf === "items_irack") {
+			try {
+			  const result = await DistinctQryResults(db["itm"], text.toUpperCase(), "irack", 5, -1);
+			  const data = result.map(item => ({ "name": item["irack"] }));
+			  callback(data);
+			  return true;
+			} catch (error) {
+			  console.error("Error:", error);
+			  return false;
 			}
-			if (idf==="supplier"){
-				sp_id = "1";   // 1 for suppliers and 2 for customers 
-				actype = "4";  // profite-loss
-				qrystr0 = "INSERT INTO ledger(ac_type, sale_pur_ID) VALUES ("+actype+", "+sp_id+") ";
-				var supmode = "2"; // 6 for company
-				var insertledgD = {"ledgid":ledgid,"ac_type":actype, "sale_pur_ID":sp_id};
-	
-				db["ledg"].insertOne(insertledgD).then(function(getledger){
-					var csid = new ObjectId().toString();
-					var ledgid = new ObjectId().toString();
-					var insertdict = {"csid":csid,"ledgid": ledgid,"name": text['name'],"add1": text['add1'],
-					"add2": text['add2'],"add3": text['stcode'],"pincode": text['pincode'],"area": text['area'],
-					"phone": text['phone'],"email": text['email'],"offphone": text['offphone'],"pan": text['pan'],
-					"bal":parseFloat(text['obal']),"regn": text['regn'],"gstn": text['gstn'],"cmnt": text['cmnt'],
-					"mode":parseInt(text['mode'])};
-	
-					db["sup"].insertOne(insertdict).then(function(result){
-						callback([insertdict["name"]]);
-					});
-	 
-				  });
-				return true;
-	
+		  }
+		  
+		if(idf==="ITEMDBSEARCH"){}	
+		if (idf === "items") {
+			try {
+			  const textlike = text.toUpperCase();
+			  const findResult = await db["itm"].find({ "name": new RegExp("^" + textlike, "i") }).limit(5).toArray();
+			  callback(findResult);
+			  return true;
+			} catch (error) {
+			  console.error("Error:", error);
+			  return false;
 			}
-		};
-	
-		if(mode==="update"){
-			if (idf==="items"){
-				var oid = new ObjectId(text["_id"]);
-				var myquery = {"_id": oid };
-				delete text["_id"];  // CANNOT Update Unique ID _id, so deleting from text object;
-				var pnet = parseFloat(parseFloat(text['prate'])*((100+(12))/100)).toFixed(2);
-				text['netrate'] = parseFloat(pnet);
-				text['prate'] = parseFloat(text['prate']);
-				text['srate'] = parseFloat(text['srate']);
-				text['cgst'] = parseFloat(text['cgst']);
-				text['sgst'] = parseFloat(text['sgst']);
-				text['gst'] = parseFloat(text['gst']);
-				text['igst'] = parseFloat(text['gst']);
-				text['dis'] = parseFloat(text['dis']);
-				text['mrp'] = parseFloat(text['mrp']);
-				var updateval = { $set: text};
-				  db["itm"].updateOne(myquery, updateval).then(function(result){
-					  callback({"name":text["name"]});
-				  })
-				return true;
+		  }
+		  
+		  if (idf === "customer") {
+			try {
+			  const textlike = text.toUpperCase();
+			  const findResult = await db["cust"].find({ "name": new RegExp("^" + textlike, "i") }).limit(5).toArray();
+			  callback(findResult);
+			  return true;
+			} catch (error) {
+			  console.error("Error:", error);
+			  return false;
 			}
-	
-			if (idf==="customer"){
-				var oid = new ObjectId(text["_id"]);
-				var myquery = {"_id": oid };
-				delete text["_id"];  // CANNOT Update Unique ID _id, so deleting from text object;
-				text['bal'] = parseFloat(text['bal']);
-				text['mode'] = parseInt(text['mode']);
-				var updateval = { $set: text};
-				  db["cust"].updateOne(myquery, updateval).then(function(result){
-					  callback({"name":text["name"]});
-				  })
-				return true;
+		  }
+		  
+		  if (idf === "supplier") {
+			try {
+			  const textlike = text.toUpperCase();
+			  const findResult = await db["sup"].find({ "name": new RegExp("^" + textlike, "i"), "mode": { "$ne": 6 } }).limit(5).toArray();
+			  callback(findResult);
+			  return true;
+			} catch (error) {
+			  console.error("Error:", error);
+			  return false;
 			}
-			if (idf==="supplier"){
-				var oid = new ObjectId(text["_id"]);
-				var myquery = {"_id": oid };
-				delete text["_id"];  // CANNOT Update Unique ID _id, so deleting from text object;
-				text['bal'] = parseFloat(text['bal']);
-				text['mode'] = parseInt(text['mode']);
-				var updateval = { $set: text};
-				  db["sup"].updateOne(myquery, updateval).then(function(result){
-					  callback({"name":text["name"]});
-				  })
-				return true;
+		  }
+		  
+		if(qrystr===""){
+			callback([">>>*** Wrong Methods Check Again !"]);
+			return true;
+		}
+	}; 
+
+	if(mode==="save"){
+		if (idf === "items") {
+			try {
+			  const itemid = new ObjectID().toString();
+			  const pnet = parseFloat(parseFloat(text['prate']) * (100 + 12) / 100).toFixed(2);
+			  const insertdict = {
+				"itemid": itemid,
+				"name": text['name'],
+				"pack": text['pack'],
+				"unit": text['unit'],
+				"netrate": pnet,
+				"prate": parseFloat(text['prate']),
+				"srate": parseFloat(text['srate']),
+				"cgst": parseFloat(text['cgst']),
+				"sgst": parseFloat(text['sgst']),
+				"gst": parseFloat(text['igst']),
+				"dis": "0.00",
+				"mrp": text['mrp'],
+				"hsn": text['hsn'],
+				"igroup": text['igroup'],
+				"irack": text['irack'],
+				"compid": text['compid'],
+				"csid": text['csid']
+			  };
+		  
+			  if (text['addcomp']) {
+				const compmode = 6;
+				const sp_id = "6";   // 1 for suppliers and 2 for customers and 6 is reserved for companies
+				const actype = "6";  // reserved Only for Company
+				const ledgid = new ObjectID().toString();
+				const insertledgD = { "ledgid": ledgid, "ac_type": actype, "sale_pur_ID": sp_id };
+				const csid = new ObjectId().toString();
+		  
+				const getledger = await db["ledg"].insertOne(insertledgD);
+		  
+				const compdict = {
+				  "csid": csid,
+				  "ledgid": ledgid,
+				  "name": text['compname'],
+				  "add1": "",
+				  "add2": "",
+				  "add3": "",
+				  "pincode": "",
+				  "area": "",
+				  "phone": "",
+				  "email": "",
+				  "offphone": "",
+				  "pan": "",
+				  "bal": "",
+				  "regn": "",
+				  "gstn": "",
+				  "cmnt": "",
+				  "mode": compmode
+				};		  
+				insertdict["compid"] = ledgid;		  
+				await db["sup"].insertOne(compdict);		  
+				console.log(">>>> NEW COMPANY ADDED WHILE CREATING NEW ITEM (qrystore) <<<< ");
+			  }  
+			  await db["itm"].insertOne(insertdict);
+			  callback([insertdict["name"]]);
+			  return true;
+			} catch (error) {
+			  console.error("Error:", error);
+			  return false;
 			}
-			
-		};
-		if(mode==="delete"){
-			
-		};
+		  }
+		  if (idf === "customer") {
+			try {
+			  const sp_id = "2";   // 1 for suppliers and 2 for customers
+			  const actype = "4";  // profite-loss
+			  const supmode = "2"; // 6 for company
+			  const ledgid = new ObjectId().toString();
+			  const insertledgD = { "ledgid": ledgid, "ac_type": actype, "sale_pur_ID": sp_id };
+		  
+			  const getledger = await db["ledg"].insertOne(insertledgD);
+		  
+			  const csid = new ObjectId().toString();
+			  const insertdict = {
+				"csid": csid,
+				"ledgid": ledgid,
+				"name": text['name'],
+				"add1": text['add1'],
+				"add2": text['add2'],
+				"add3": text['stcode'],
+				"pincode": text['pincode'],
+				"area": text['area'],
+				"phone": text['phone'],
+				"email": text['email'],
+				"offphone": text['offphone'],
+				"pan": text['pan'],
+				"bal": parseFloat(text['obal']),
+				"regn": text['regn'],
+				"gstn": text['gstn'],
+				"cmnt": text['cmnt'],
+				"mode": parseInt(text['mode'])
+			  };
+		  
+			  await db["cust"].insertOne(insertdict);
+			  callback([insertdict["name"]]);
+			  return true;
+			} catch (error) {
+			  console.error("Error:", error);
+			  return false;
+			}
+		  }		  
+		  if (idf === "supplier") {
+			try {
+			  const sp_id = "1";   // 1 for suppliers and 2 for customers
+			  const actype = "4";  // profite-loss
+			  const ledgid = new ObjectId().toString();
+			  const insertledgD = { "ledgid": ledgid, "ac_type": actype, "sale_pur_ID": sp_id };
+		  
+			  const getledger = await db["ledg"].insertOne(insertledgD);
+		  
+			  const csid = new ObjectId().toString();
+			  const newledgid = new ObjectId().toString();
+			  const insertdict = {
+				"csid": csid,
+				"ledgid": newledgid,
+				"name": text['name'],
+				"add1": text['add1'],
+				"add2": text['add2'],
+				"add3": text['stcode'],
+				"pincode": text['pincode'],
+				"area": text['area'],
+				"phone": text['phone'],
+				"email": text['email'],
+				"offphone": text['offphone'],
+				"pan": text['pan'],
+				"bal": parseFloat(text['obal']),
+				"regn": text['regn'],
+				"gstn": text['gstn'],
+				"cmnt": text['cmnt'],
+				"mode": parseInt(text['mode'])
+			  };
+		  
+			  await db["sup"].insertOne(insertdict);
+			  callback([insertdict["name"]]);
+			  return true;
+			} catch (error) {
+			  console.error("Error:", error);
+			  return false;
+			}
+		  }
 	};
-	function spsearch_Ledgid_PartyName(db, sp, cs, frm, tod, itype, billas, ledgid, partyname, callback){
-		var newitype = itype.replace(/["'\(|\)]/g,'').split(",");
-		var itypeary = [];
-		for(var i=0; i<newitype.length; i++){itypeary.push(newitype[i])};
+
+	if(mode==="update"){
+		if (idf === "items") {
+			try {
+			  const oid = new ObjectId(text["_id"]);
+			  const myquery = { "_id": oid };
+			  delete text["_id"];  // CANNOT Update Unique ID _id, so deleting from text object;
+			  const pnet = parseFloat(parseFloat(text['prate']) * ((100 + (12)) / 100)).toFixed(2);
+			  text['netrate'] = parseFloat(pnet);
+			  text['prate'] = parseFloat(text['prate']);
+			  text['srate'] = parseFloat(text['srate']);
+			  text['cgst'] = parseFloat(text['cgst']);
+			  text['sgst'] = parseFloat(text['sgst']);
+			  text['gst'] = parseFloat(text['gst']);
+			  text['igst'] = parseFloat(text['gst']);
+			  text['dis'] = parseFloat(text['dis']);
+			  text['mrp'] = parseFloat(text['mrp']);
+		  
+			  const updateval = { $set: text };
+			  await db["itm"].updateOne(myquery, updateval);
+			  callback({ "name": text["name"] });
+			  return true;
+			} catch (error) {
+			  console.error("Error:", error);
+			  return false;
+			}
+		  }
+		  
+		  if (idf === "customer") {
+			try {
+			  const oid = new ObjectId(text["_id"]);
+			  const myquery = { "_id": oid };
+			  delete text["_id"];  // CANNOT Update Unique ID _id, so deleting from the text object;
+			  text['bal'] = parseFloat(text['bal']);
+			  text['mode'] = parseInt(text['mode']);
+			  const updateval = { $set: text };
+			  await db["cust"].updateOne(myquery, updateval);
+			  callback({ "name": text["name"] });
+			  return true;
+			} catch (error) {
+			  console.error("Error:", error);
+			  return false;
+			}
+		  }
+		  if (idf === "supplier") {
+			try {
+			  const oid = new ObjectId(text["_id"]);
+			  const myquery = { "_id": oid };
+			  delete text["_id"];  // CANNOT Update Unique ID _id, so deleting from the text object;
+			  text['bal'] = parseFloat(text['bal']);
+			  text['mode'] = parseInt(text['mode']);	  
+			  const updateval = { $set: text };
+			  await db["sup"].updateOne(myquery, updateval);
+			  callback({ "name": text["name"] });
+			  return true;
+			} catch (error) {
+			  console.error("Error:", error);
+			  return false;
+			}
+		  }
+		  
+	};
+	if(mode==="delete"){
+		
+	};
+};
+
+function spsearch_Ledgid_PartyName(db, sp, cs, frm, tod, itype, billas, ledgid, partyname, callback){
+	var newitype = itype.replace(/["'\(|\)]/g,'').split(",");
+	var itypeary = [];
+	for(var i=0; i<newitype.length; i++){itypeary.push(newitype[i])};
+
+	var newbillas = billas.replace(/["'\(|\)]/g,'').split(",");
+	var billasary = [];
+	for(var i=0; i<newbillas.length; i++){billasary.push(newbillas[i])};
 	
-		var newbillas = billas.replace(/["'\(|\)]/g,'').split(",");
-		var billasary = [];
-		for(var i=0; i<newbillas.length; i++){billasary.push(newbillas[i])};
+	var searchparam = {"ledgid":ledgid,"billdate":{"$gte":frm, "$lte":tod,},
+			"itype":{"$in":itypeary}, "billas":{"$in":billasary} }
+	
+	
+	const findResultSale = db[sp].find(searchparam).toArray();
+	findResultSale.then(function(result){
+			result["partyinfo"]={};
+			for(var i=0; i<result.length; i++){
+				result[i]["name"]=partyname;
+				result[i]["invdate"]=result[i]["billdate"];
+				} 
+			callback(result);
+		})
+}
+	
+function spsearch_Ledgid_Billno(db, sp, cs, frm, tod, itype, billas, billno, ledgid, callback){
+	var newitype = itype.replace(/["'\(|\)]/g,'').split(",");
+	var itypeary = [];
+	for(var i=0; i<newitype.length; i++){itypeary.push(newitype[i])};
+
+	var newbillas = billas.replace(/["'\(|\)]/g,'').split(",");
+	var billasary = [];
+	for(var i=0; i<newbillas.length; i++){billasary.push(newbillas[i])};
+	db[cs].find({"ledgid":ledgid}).sort({"_id":-1}).toArray().then(function(partydetails){
 		
-		var searchparam = {"ledgid":ledgid,"billdate":{"$gte":frm, "$lte":tod,},
-			  "itype":{"$in":itypeary}, "billas":{"$in":billasary} }
+		var ledgid = partydetails[0]["ledgid"];
+		var searchparam = {"ledgid":ledgid,"billno":billno,"billdate":{"$gte":frm, "$lte":tod,},
+			"itype":{"$in":itypeary}, "billas":{"$in":billasary}, }
 		
-	 
 		const findResultSale = db[sp].find(searchparam).toArray();
 		findResultSale.then(function(result){
-			  result["partyinfo"]={};
-			  for(var i=0; i<result.length; i++){
-				  result[i]["name"]=partyname;
-				  result[i]["invdate"]=result[i]["billdate"];
-				  } 
-			  callback(result);
-			})
-	}
-	
-	function spsearch_Ledgid_Billno(db, sp, cs, frm, tod, itype, billas, billno, ledgid, callback){
-		var newitype = itype.replace(/["'\(|\)]/g,'').split(",");
-		var itypeary = [];
-		for(var i=0; i<newitype.length; i++){itypeary.push(newitype[i])};
-	
-		var newbillas = billas.replace(/["'\(|\)]/g,'').split(",");
-		var billasary = [];
-		for(var i=0; i<newbillas.length; i++){billasary.push(newbillas[i])};
-		db[cs].find({"ledgid":ledgid}).sort({"_id":-1}).toArray().then(function(partydetails){
+			result["partyinfo"]=partydetails[0];
+			for(var i=0; i<result.length; i++){
+				result[i]["name"]=partydetails[0]["name"];
+				result[i]["invdate"]=result[i]["billdate"];
+				} 
 			
-		  var ledgid = partydetails[0]["ledgid"];
-		  var searchparam = {"ledgid":ledgid,"billno":billno,"billdate":{"$gte":frm, "$lte":tod,},
-			  "itype":{"$in":itypeary}, "billas":{"$in":billasary}, }
-		  
-		  const findResultSale = db[sp].find(searchparam).toArray();
-			findResultSale.then(function(result){
-			  result["partyinfo"]=partydetails[0];
-			  for(var i=0; i<result.length; i++){
-				  result[i]["name"]=partydetails[0]["name"];
-				  result[i]["invdate"]=result[i]["billdate"];
-				  } 
-			  
-			  callback(result);
-			})
-		});
-	}
+			callback(result);
+		})
+	});
+}
 
 function spsearch_With_Ledgid(db, sp, cs, text, frm, tod, itype, billas, callback){
 	var newitype = itype.replace(/["'\(|\)]/g,'').split(",");
@@ -879,69 +974,96 @@ function ledger_n_tax_search(db, idf, text, ledgid, frm, tod, itype, billas, fye
 
 }
 
-function deleteSalePurDocuments(db, rp, sp, spitm, fyear){
-	const cfilter = {"transid":rp["transid"],"ledgid":rp["ledgid"]};
+async function deleteSalePurDocuments(db, rp, sp, spitm, fyear) {
+    try {
+        const cfilter = { "transid": rp["transid"], "ledgid": rp["ledgid"] };
 
-	db[spitm].find({"spid":rp["spid"]}).toArray().then(async function(res){
-		for(i=0;i< res.length; i++){
-			let stkres = await db['stk'].find({ "itemid":res[i]['itemid'], "batchno":res[i]['batchno'] }).toArray();
-			if(sp == "pur"){qty = stkres[0]["qty"] - res[i]['qty'];}
-			else if (sp == "sale"){qty = stkres[0]["qty"] + res[i]['qty'];}
-			const filter = {"stockid" : stkres[0]["stockid"], "itemid" : stkres[0]["itemid"]};
-			const update = {"$set" : {"qty": qty}};
-			db["stk"].updateOne(filter, update).then(function(res){});
-			//const update = { "$inc": {"qty": d['qty'],}};
-			//db["stk"].updateOne(filter, update)	
-		}
-	});
-	db["trns"].deleteOne(cfilter).then(function(result){})
-	db["cash"].deleteOne(cfilter).then(function(result){})
-	db["pr"].deleteOne(cfilter).then(function(result){})
-	db[sp].deleteOne(cfilter).then(function(result){})
-	db[spitm].deleteMany({"spid":rp["spid"]}).then(function(result){})
-	// ** here stock should be updated after delete ** //
-};
-
-function pay_rcpt_cash_update(db, typ, rp, cr, dr, fyear){
-  const cfilter = {"transid":rp["transid"],"ledgid":rp["ledgid"]};
-  const cupdate = {"$set": {"type":typ, "billno":rp["billno"], "credit":cr,"debit":dr,"date":rp["dbbilldate"],"comment":rp["cmnt"]}};
-  const cinsert = {"cashid":0, "ledgid":rp["ledgid"], "transid":rp["transid"],"type":typ, "billno":rp["billno"], 
-                  "credit":cr,"debit":dr, "date":rp["dbbilldate"],"comment":rp["cmnt"]};
-  const prupdate = {"$set": {"type":typ, "billno":rp["billno"], "credit":dr,"debit":cr,"date":rp["dbbilldate"]}};
-  const prinsert = {"prid":0, "ledgid":rp["ledgid"], "transid":rp["transid"],"vautono":"","type":typ,"cash":0,
-                   "billno":rp["billno"], "credit":dr,"debit":cr,"date":rp["dbbilldate"],"status":0, "fyear":fyear,};
-
-  if(rp["cscr"] == 'CASH'){
-    db["pr"].deleteOne(cfilter).then(function(result){}); // have to delete pay_rcpt document if exists or not
-    db["cash"].find(cfilter).toArray().then(function(cdata){
-      if(cdata.length>0){
-        db["cash"].updateOne(cfilter, cupdate).then(function(cupdt){})
-        // "UPDATE cash document Here because data Exists";
-      }else{
-        cinsert["cashid"]= new ObjectId().toString(); // updating required cashid 
-        db["cash"].insertOne(cinsert).then(function(cinsert){})
-        // "Insert cash document Here because data NOT-Exists";
-      }
-    })
-  }
-  if(rp["cscr"] == 'CREDIT'){
-    db["cash"].deleteOne(cfilter).then(function(result){});
-    if(rp['mode'] == 2){
-      db["pr"].find(cfilter).toArray().then(function(prdata){
-        if(prdata.length>0){
-          db["pr"].updateOne(cfilter, prupdate).then(function(pr_updt){})
-          // "UPDATE pay_rcpt document Here because data Exists";
-        }else{
-          prinsert["prid"]= new ObjectId().toString(); // updating required prid 
-          db["pr"].insertOne(prinsert).then(function(pr_insert){})
-          // "Insert pay_rcpt document Here because data NOT-Exists";
+        const res = await db[spitm].find({ "spid": rp["spid"] }).toArray();
+        for (let i = 0; i < res.length; i++) {
+            const stkres = await db['stk'].find({ "itemid": res[i]['itemid'], "batchno": res[i]['batchno'] }).toArray();
+            let qty;
+            if (sp == "pur") {
+                qty = stkres[0]["qty"] - res[i]['qty'];
+            } else if (sp == "sale") {
+                qty = stkres[0]["qty"] + res[i]['qty'];
+            }
+            const filter = { "stockid": stkres[0]["stockid"], "itemid": stkres[0]["itemid"] };
+            const update = { "$set": { "qty": qty } };
+            await db["stk"].updateOne(filter, update);
         }
-      })
-    }
-  }
-};
 
-function csfinalbill(db, idf, rd, mode, main, callback){
+        await db["trns"].deleteOne(cfilter);
+        await db["cash"].deleteOne(cfilter);
+        await db["pr"].deleteOne(cfilter);
+        await db[sp].deleteOne(cfilter);
+        await db[spitm].deleteMany({ "spid": rp["spid"] });
+
+        // ** here stock should be updated after delete ** //
+    } catch (err) {
+        console.log(err);
+    }
+}
+
+async function pay_rcpt_cash_update(db, typ, rp, cr, dr, fyear) {
+    const cfilter = { "transid": rp["transid"], "ledgid": rp["ledgid"] };
+    const cupdate = { "$set": { "type": typ, "billno": rp["billno"], "credit": cr, "debit": dr, "date": rp["billdate"], "comment": rp["cmnt"] } };
+    const cinsert = {
+        "cashid": 0,
+        "ledgid": rp["ledgid"],
+        "transid": rp["transid"],
+        "type": typ,
+        "billno": rp["billno"],
+        "credit": cr,
+        "debit": dr,
+        "date": rp["dbbilldate"],
+        "comment": rp["cmnt"]
+    };
+    const prupdate = { "$set": { "type": typ, "billno": rp["billno"], "credit": dr, "debit": cr, "date": rp["dbbilldate"] } };
+    const prinsert = {
+        "prid": 0,
+        "ledgid": rp["ledgid"],
+        "transid": rp["transid"],
+        "vautono": "",
+        "type": typ,
+        "cash": 0,
+        "billno": rp["billno"],
+        "credit": dr,
+        "debit": cr,
+        "date": rp["dbbilldate"],
+        "status": 0,
+        "fyear": fyear
+    };
+
+    if (rp["cscr"] == 'CASH') {
+        await db["pr"].deleteOne(cfilter);
+        const cdata = await db["cash"].find(cfilter).toArray();
+        if (cdata.length > 0) {
+            await db["cash"].updateOne(cfilter, cupdate);
+            // "UPDATE cash document Here because data Exists";
+        } else {
+            cinsert["cashid"] = new ObjectId().toString(); // updating required cashid 
+            await db["cash"].insertOne(cinsert);
+            // "Insert cash document Here because data NOT-Exists";
+        }
+    }
+    if (rp["cscr"] == 'CREDIT') {
+        await db["cash"].deleteOne(cfilter);
+        if (rp['mode'] == 2) {
+            const prdata = await db["pr"].find(cfilter).toArray();
+            if (prdata.length > 0) {
+                await db["pr"].updateOne(cfilter, prupdate);
+                // "UPDATE pay_rcpt document Here because data Exists";
+            } else {
+                prinsert["prid"] = new ObjectId().toString(); // updating required prid 
+                await db["pr"].insertOne(prinsert);
+                // "Insert pay_rcpt document Here because data NOT-Exists";
+            }
+        }
+    }
+}
+
+
+async function csfinalbill(db, idf, rd, mode, main, callback){
 	var rp = rd["pan"];
 	var cscr = rp["cscr"];
 	var fyear = parseInt(rp["fyear"]);
@@ -978,42 +1100,82 @@ function csfinalbill(db, idf, rd, mode, main, callback){
 						var insert_purchase = {"spid" : spid,"ledgid":rp['ledgid'],"transid":transid,"billautono":"","itype":rp['itype'],
 							"billno":rp['billno'],"billdate":rp['dbbilldate'],"invdate":rp['dbinvdate'],"cscr":rp['cscr'],"csid":rp['csid'],
 							"amount":parseFloat(rp['gtot']),"billas":rp['billas'],"cmnt":rp['cmnt'],"fyear":fyear,};
-						db["puro"].insertOne(insert_purchase).then(function(purchaseid){
-							itemflag = PANEL_PURCHASE_PROD(fyear, "", "", rd, db, spid, transid, main);
-							});	
+							try {
+								const purchaseid = await db["puro"].insertOne(insert_purchase);
+								const itemflag = await PANEL_PURCHASE_PROD(fyear, "", "", rd, db, spid, transid, main, callback);
+							} catch (err) {
+								console.log(err);
+							}
+							
 						return true;
 						}
 
 				transid = new ObjectId().toString();
-				var insert_mytrans = {"transid":transid,"ledgid":rp['ledgid'],"trtype":rp['itype'],"type":typ,"credit":0, "debit":0,'date':rp['dbbilldate'],"fyear":fyear,  };
+				var insert_mytrans = {"transid":transid,"ledgid":rp['ledgid'],"trtype":rp['itype'],"type":typ,"credit":0, "debit":0,'date':rp['dbbilldate'],"fyear":fyear,};
 				if (cscr=="CASH"){insert_mytrans["debit"]=parseFloat(rp['gtot']);};
 				if (cscr=="CREDIT"){insert_mytrans["credit"]=parseFloat(rp['gtot']); };
-				db["trns"].insertOne(insert_mytrans).then(function(result){
-					if(cscr == 'CREDIT'){
-						if (rp['mode'] == 2){
-							var prid = new ObjectId().toString();
-							// status ==>> 0 means UN-PAID to cash field; when bill fully paid status must change to 1 means PAID
-							var probj = {"prid":prid,"ledgid":rp['ledgid'],"transid":transid,"vautono":"","type":typ,"cash":0,"billno":rp['billno'],
-													"credit":parseFloat(rp['gtot']),"debit":0,'date':rp['dbbilldate'],"status":0,"fyear":fyear,};
-							db["pr"].insertOne(probj).then(function(prinst){});
+				try {
+					const trnsresult = await db["trns"].insertOne(insert_mytrans);
+					if (cscr == 'CREDIT') {
+						if (rp['mode'] == 2) {
+							const prid = new ObjectId().toString();
+							const probj = {
+								"prid": prid,
+								"ledgid": rp['ledgid'],
+								"transid": transid,
+								"vautono": "",
+								"type": typ,
+								"cash": 0,
+								"billno": rp['billno'],
+								"credit": parseFloat(rp['gtot']),
+								"debit": 0,
+								'date': rp['dbbilldate'],
+								"status": 0,
+								"fyear": fyear,
+							};
+							const prinst = await db["pr"].insertOne(probj);
 						}
 					}
-					if(cscr == 'CASH'){
-						var cashid = new ObjectId().toString();
-						var cashobj = {"cashid":cashid,"ledgid":rp['ledgid'],"transid":transid,"type":typ,"billno":rp['billno'],"credit":0,
-						"debit":parseFloat(rp['gtot']),'date':rp['dbbilldate'],'comment':rp['cmnt'],"fyear":fyear,};
-						db["cash"].insertOne(cashobj).then(function(cashinst){});
+					
+					if (cscr == 'CASH') {
+						const cashid = new ObjectId().toString();
+						const cashobj = {
+							"cashid": cashid,
+							"ledgid": rp['ledgid'],
+							"transid": transid,
+							"type": typ,
+							"billno": rp['billno'],
+							"credit": 0,
+							"debit": parseFloat(rp['gtot']),
+							'date': rp['dbbilldate'],
+							'comment': rp['cmnt'],
+							"fyear": fyear,
+						};
+						const cashinst = await db["cash"].insertOne(cashobj);
 					}
 					
-					var spid = new ObjectId().toString();
-					var insert_purchase = {"spid" : spid,"ledgid" :  rp['ledgid'],"transid":transid,"billautono":"","itype":rp['itype'],
-						"billno": rp['billno'],"billdate":rp['dbbilldate'],"invdate":rp['dbinvdate'],"cscr":rp['dbcscr'],"csid":rp['csid'],
-						"amount":parseFloat(rp['gtot']),"billas":rp['billas'],"cmnt":rp['cmnt'],"fyear":fyear,};
-					db["pur"].insertOne(insert_purchase).then(function(purchaseid){
-						PANEL_PURCHASE_PROD(fyear, "", "", rd, db, spid, transid, main);
-					});					
-					
-				});
+					const spid = new ObjectId().toString();
+					const insert_purchase = {
+						"spid": spid,
+						"ledgid": rp['ledgid'],
+						"transid": transid,
+						"billautono": "",
+						"itype": rp['itype'],
+						"billno": rp['billno'],
+						"billdate": rp['dbbilldate'],
+						"invdate": rp['dbinvdate'],
+						"cscr": rp['dbcscr'],
+						"csid": rp['csid'],
+						"amount": parseFloat(rp['gtot']),
+						"billas": rp['billas'],
+						"cmnt": rp['cmnt'],
+						"fyear": fyear,
+					};
+					const purchaseid = await db["pur"].insertOne(insert_purchase);
+					await PANEL_PURCHASE_PROD(fyear, "", "", rd, db, spid, transid, main, callback);
+				} catch (error) {
+					console.error("error in insert",error);
+				}
 
 	  } // supplier save mode close
 
@@ -1027,33 +1189,70 @@ function csfinalbill(db, idf, rd, mode, main, callback){
 				      "cscr":rp["dbcscr"], "csid":rp['csid'], "amount":parseFloat(rp['gtot']), "billas":rp['billas'],"cmnt":rp['cmnt'],}};
 
 		  if (cscr=='CHALLAN'){
+				console.log("yaha aya kya ?");
 				main = false;
-				db["puro"].updateOne(filter, pur_update).then(function(puroupdate){
-					PANEL_PURCHASE_PROD(fyear, callback, "", rd, db, spid, transid, main);
-				})
-			  	return true; //
+				try {
+					const puroupdate = await db["puro"].updateOne(filter, pur_update);
+					await PANEL_PURCHASE_PROD(fyear, callback, "", rd, db, spid, transid, main, callback);
+					return true;
+				} catch (err) {
+					console.log(err);
+					return false;
+				}
+				//
 		  	} // purchase order update challan closed
 				
-				const filter_mytrans = {"ledgid":rp['ledgid'],"transid":rp['transid'],};	
-		    var mytransobj = {"transid":rp['transid'],"ledgid":rp['ledgid'],"trtype":rp['dbcscr'],"type":typ, "credit":0, "debit":0, 'date':rp['dbbilldate'], "fyear":fyear, };
-				if (cscr=="CASH"){mytransobj["debit"]=parseFloat(rp['gtot']);};
-				if (cscr=="CREDIT"){mytransobj["credit"]=parseFloat(rp['gtot']); };
-				var update_mytrans = { "$set": mytransobj};
-
-				const filter_pur = {"spid":spid,"transid":transid,};
-				var update_pur = { "$set":{"spid" : spid,"ledgid" :rp['ledgid'],"transid":transid,"billautono":"","itype":rp['itype'],
-							"billno": rp['billno'],"billdate":rp['dbbilldate'],"invdate":rp['dbinvdate'],"cscr":rp['dbcscr'],"csid":rp['csid'],
-							"amount":parseFloat(rp['gtot']),"billas":rp['billas'],"cmnt":rp['cmnt'],"fyear":fyear,}};
-
-				pay_rcpt_cash_update(db, typ, rp, parseFloat(rp["gtot"]), 0, fyear);
-
+			  try {
+				const filter_mytrans = {"ledgid": rp['ledgid'], "transid": rp['transid']};
+				const mytransobj = {
+					"transid": rp['transid'],
+					"ledgid": rp['ledgid'],
+					"trtype": rp['dbcscr'],
+					"type": typ,
+					"credit": 0,
+					"debit": 0,
+					'date': rp['billdate'],  //changed dbbilldate to billdate
+					"fyear": fyear,
+				};
 				
-				db["trns"].updateOne(filter_mytrans, update_mytrans).then(function(result){
-					db["pur"].updateOne(filter_pur, update_pur).then(function(purchaseid){
-
-							itemflag = PANEL_PURCHASE_PROD(fyear, "", "", rd, db, spid, transid, main);
-					});					
-				});
+				if (cscr == "CASH") {
+					mytransobj["debit"] = parseFloat(rp['gtot']);
+				} else if (cscr == "CREDIT") {
+					mytransobj["credit"] = parseFloat(rp['gtot']);
+				}
+				
+				const update_mytrans = { "$set": mytransobj };
+			
+				const filter_pur = {"spid": spid, "transid": transid};
+				const update_pur = {
+					"$set": {
+						"spid": spid,
+						"ledgid": rp['ledgid'],
+						"transid": transid,
+						"billautono": "",
+						"itype": rp['itype'],
+						"billno": rp['billno'],
+						"billdate": rp['billdate'], // here dbbilldate changed in below line too
+						"invdate": rp['invdate'],
+						"cscr": rp['dbcscr'],
+						"csid": rp['csid'],
+						"amount": parseFloat(rp['gtot']),
+						"billas": rp['billas'],
+						"cmnt": rp['cmnt'],
+						"fyear": fyear,
+					}
+				};
+			
+				await pay_rcpt_cash_update(db, typ, rp, parseFloat(rp["gtot"]), 0, fyear);
+				console.log("----",filter_mytrans, update_mytrans);
+				const resultMyTrans = await db["trns"].updateOne(filter_mytrans, update_mytrans);
+				const resultPur = await db["pur"].updateOne(filter_pur, update_pur);
+			
+				itemflag = await PANEL_PURCHASE_PROD(fyear, "", "", rd, db, spid, transid, main, callback);
+			} catch (error) {
+				console.error("error in update",error);
+			}
+			
 
 		} // supplier update mode close
 		if (mode=="delete"){deleteSalePurDocuments(db, rp, "pur", "pitm", fyear);} // supplier delete close final
@@ -1062,102 +1261,176 @@ function csfinalbill(db, idf, rd, mode, main, callback){
 	if (idf==="customer"){
 
 		typ = 2; // FOR SALES typ=1 FOR PURCHASE, typ=3 FOR PAYMENT typ=4 FOR RECEIPT typ=7 FOR BANK TARNSACTION, typ=8 PUR RETURN, typ=9 SALE RETURN
-		if (mode=="save"){
-			crdrtype = 'credit';	
-			if (cscr=="CHALLAN"){
-					main = false;
-					transid = "0";
-					spid = new ObjectId().toString();
-					var insert_sale = {"spid" : spid,"ledgid":rp['ledgid'], "transid": transid, "itype": rp['itype'], "billautono": "","billno":rp['billno'],
-								"billdate":rp['dbbilldate'],"cscr":rp['dbcscr'], "csid":rp['csid'],"amount":parseFloat(rp['gtot']),"billas":rp['billas'],
-								"cmnt":rp['cmnt'],"fyear": fyear,};
-						db["puro"].insertOne(insert_sale).then(function(purchaseid){
-							PANEL_SALE_PROD(fyear, callback, "", rd, db, spid, transid, main);
-							});	
+		try {
+			if (mode == "save") {
+				if (cscr == "CHALLAN") {
+					const main = false;
+					const transid = "0";
+					const spid = new ObjectId().toString();
+					const insert_sale = {
+						"spid": spid,
+						"ledgid": rp['ledgid'],
+						"transid": transid,
+						"itype": rp['itype'],
+						"billautono": "",
+						"billno": rp['billno'],
+						"billdate": rp['dbbilldate'],
+						"cscr": rp['dbcscr'],
+						"csid": rp['csid'],
+						"amount": parseFloat(rp['gtot']),
+						"billas": rp['billas'],
+						"cmnt": rp['cmnt'],
+						"fyear": fyear,
+					};
+					await db["puro"].insertOne(insert_sale);
+					await PANEL_SALE_PROD(fyear, callback, "", rd, db, spid, transid, main);
 					return true;
-				}// must insert into sale_order_table
-  		
-			transid = new ObjectId().toString();
-			cashid = new ObjectId().toString();
-			spid = new ObjectId().toString();
-
-			var insert_mytrans = {"transid":transid,"ledgid":rp['ledgid'],"trtype":rp['dbcscr'], 
-				  "type":typ, "credit":0, "debit":0,'date':rp['dbbilldate'],"fyear":fyear, };
-			if (cscr=="CASH"){insert_mytrans["credit"]=parseFloat(rp['gtot']);};
-			if (cscr=="CREDIT"){insert_mytrans["debit"]=parseFloat(rp['gtot']); };
-
-			var insert_sale = {"spid" : spid,"ledgid":rp['ledgid'], "transid": transid, "itype": rp['itype'], "billautono": "","billno":rp['billno'],
-												"billdate":rp['dbbilldate'],"cscr":rp['dbcscr'], "csid":rp['csid'],"amount":parseFloat(rp['gtot']),"billas":rp['billas'],
-												"cmnt":rp['cmnt'],"fyear": fyear,};
-			var cashquery = {"cashid":cashid,"ledgid":rp['ledgid'],"transid" : transid,"type" : typ,"billno":rp['billno'],
-			  							"credit":0,"debit":parseFloat(rp['gtot']),'date':rp['dbbilldate'],'comment':rp['cmnt'],"fyear":fyear,}
-  
-			db["trns"].insertOne(insert_mytrans).then(function(result){
-				if(cscr == 'CASH'){db["cash"].insertOne(cashquery).then(function(result){console.log("cashid",cashid)});}
-				if(cscr == 'CREDIT'){
-				  if(rp['mode'] == 2){
-					  prid = new ObjectId().toString();
-					  // status ==>> 0 means UN-PAID to cash field; when bill fully paid status must change to 1 means PAID
-					  var pr_insert = {"prid":prid,"ledgid":rp['ledgid'],"transid":transid,"vautono":"","type":typ,"cash":0,
-					  "billno":rp['billno'],"date":rp['dbbilldate'],"credit":parseFloat(rp['gtot']),"debit":0,"status":0,"fyear":fyear}
-					  db["pr"].insertOne(pr_insert).then(function(result){});
-				  }	
 				}
-				
-				db["sale"].insertOne(insert_sale).then(function(purchaseid){
-				  PANEL_SALE_PROD(fyear, callback, "", rd, db, spid, transid, main);
-			  });			
-			})
-		  } // customer save close final
+	
+				const transid = new ObjectId().toString();
+				const cashid = new ObjectId().toString();
+				const spid = new ObjectId().toString();
+	
+				const insert_mytrans = {
+					"transid": transid,
+					"ledgid": rp['ledgid'],
+					"trtype": rp['dbcscr'],
+					"type": typ,
+					"credit": 0,
+					"debit": 0,
+					'date': rp['billdate'],
+					"fyear": fyear,
+				};
+	
+				if (cscr == "CASH") {
+					insert_mytrans["credit"] = parseFloat(rp['gtot']);
+				}
+				if (cscr == "CREDIT") {
+					insert_mytrans["debit"] = parseFloat(rp['gtot']);
+				}
+	
+				const insert_sale = {
+					"spid": spid,
+					"ledgid": rp['ledgid'],
+					"transid": transid,
+					"itype": rp['itype'],
+					"billautono": "",
+					"billno": rp['billno'],
+					"billdate": rp['billdate'], //here dbbilldate
+					"cscr": rp['dbcscr'],
+					"csid": rp['csid'],
+					"amount": parseFloat(rp['gtot']),
+					"billas": rp['billas'],
+					"cmnt": rp['cmnt'],
+					"fyear": fyear,
+				};
+	
+				const cashquery = {
+					"cashid": cashid,
+					"ledgid": rp['ledgid'],
+					"transid": transid,
+					"type": typ,
+					"billno": rp['billno'],
+					"credit": 0,
+					"debit": parseFloat(rp['gtot']),
+					'date': rp['billdate'],
+					'comment': rp['cmnt'],
+					"fyear": fyear,
+				};
+	
+				await db["trns"].insertOne(insert_mytrans);
+				if (cscr == 'CASH') {
+					await db["cash"].insertOne(cashquery);
+				}
+				if (cscr == 'CREDIT') {
+					if (rp['mode'] == 2) {
+						const prid = new ObjectId().toString();
+						const pr_insert = {
+							"prid": prid,
+							"ledgid": rp['ledgid'],
+							"transid": transid,
+							"vautono": "",
+							"type": typ,
+							"cash": 0,
+							"billno": rp['billno'],
+							"date": rp['dbbilldate'],
+							"credit": parseFloat(rp['gtot']),
+							"debit": 0,
+							"status": 0,
+							"fyear": fyear,
+						};
+						await db["pr"].insertOne(pr_insert);
+					}
+				}
+	
+				await db["sale"].insertOne(insert_sale);
+				await PANEL_SALE_PROD(fyear, callback, "", rd, db, spid, transid, main);
+	
+				return true;
+			}
+		} catch (err) {
+			console.log(err);
+			return false;
+		}// customer save close final
 
-		if (mode=="update"){
-  		  transid = rp['transid'];
-		    spid = rp['spid'];
-		    const filter = {"spid":rp['spid'],"transid":rp['transid'],};
-		    const sale_update = { "$set": {"ledgid":rp['ledgid'], "itype":rp['itype'], "billno":rp["billno"], "billdate":rp["dbbilldate"],
-				      "cscr":rp["dbcscr"], "csid":rp['csid'], "amount":parseFloat(rp['gtot']), "billas":rp['billas'],"cmnt":rp['cmnt'],}};
-		  if (cscr=='CHALLAN'){
-				main = false;
-				db["saleo"].updateOne(filter, sale_update).then(function(saleoupdate){
-					PANEL_SALE_PROD(fyear, callback, "", rd, db, rp['spid'], rp['transid'], main);
-				})
-			  	return true; //
-		  	} // customer update challan closed
-
-		  const filter_mytrans = {"ledgid":rp['ledgid'],"transid":rp['transid'],};	
-		  var mytransobj = {"transid":rp['transid'],"ledgid":rp['ledgid'],"trtype":rp['dbcscr'],"type":typ, "credit":0, "debit":0, 'date':rp['dbbilldate'], "fyear":fyear, };
-			if (cscr=="CASH"){mytransobj["credit"]=parseFloat(rp['gtot']);};
-			if (cscr=="CREDIT"){mytransobj["debit"]=parseFloat(rp['gtot']);};
-			var update_mytrans = { "$set": mytransobj};
-
-			const filter_sale = {"spid":rp['spid'],"transid":rp['transid'],};
-			var update_sale = { "$set": {"spid" : spid,"ledgid":rp['ledgid'], "transid":rp['transid'], "itype": rp['itype'], "billautono": "","billno":rp['billno'],
-												"billdate":rp['dbbilldate'],"cscr":rp['dbcscr'], "csid":rp['csid'],"amount":parseFloat(rp['gtot']),"billas":rp['billas'],
-												"cmnt":rp['cmnt'],"fyear": fyear,}};
-			// const filter_cash = {"fyear":fyear,"transid":rp['transid'],"ledgid":rp['ledgid'],};
-			var cashquery = { "$set": {"ledgid":rp['ledgid'],"transid":rp['transid'],"type":typ,"billno":rp['billno'],
-			  							"credit":0,"debit":parseFloat(rp['gtot']),'date':rp['dbbilldate'],'comment':rp['cmnt'],"fyear":fyear,}};
-			// const filter_pr = {"fyear":fyear,"transid":rp['transid'],"ledgid":rp['ledgid'],};
-			// var pr_update = { "$set": {"ledgid":rp['ledgid'],"transid":rp['transid'],"vautono":"","type":typ,"cash":0,
-			// 		  "billno":rp['billno'],"debit":0,"date":rp['dbbilldate'],"credit":parseFloat(rp['gtot']),"fyear":fyear}};
-
-			pay_rcpt_cash_update(db, typ, rp, 0, parseFloat(rp["gtot"]), fyear);
-
-			db["trns"].updateOne(filter_mytrans, update_mytrans).then(function(result){
-				db["sale"].updateOne(filter_sale, update_sale).then(function(purchaseid){
-				  PANEL_SALE_PROD(fyear, callback, "", rd, db, rp['spid'], rp['transid'], main);
-			  });			
-			});
-
-		} // customer update close final
-		if (mode=="delete"){deleteSalePurDocuments(db, rp, "sale", "sitm", fyear);} // customer delete close final
+		if (mode == "update") {
+			transid = rp['transid'];
+			spid = rp['spid'];
+			const filter = { "spid": rp['spid'], "transid": rp['transid'], };
+			const sale_update = {
+			  "$set": {
+				"ledgid": rp['ledgid'], "itype": rp['itype'], "billno": rp["billno"], "billdate": rp["billdate"],
+				"cscr": rp["dbcscr"], "csid": rp['csid'], "amount": parseFloat(rp['gtot']), "billas": rp['billas'], "cmnt": rp['cmnt'],
+			  }
+			};
+			
+			if (cscr == 'CHALLAN') {
+			  main = false;
+			  await db["saleo"].updateOne(filter, sale_update);
+			  await PANEL_SALE_PROD(fyear, callback, "", rd, db, rp['spid'], rp['transid'], main);
+			  return true;
+			}
+			
+			const filter_mytrans = { "ledgid": rp['ledgid'], "transid": rp['transid'], };
+			var mytransobj = {
+			  "transid": rp['transid'], "ledgid": rp['ledgid'], "trtype": rp['dbcscr'], "type": typ, "credit": 0, "debit": 0, 'date': rp['dbbilldate'], "fyear": fyear,
+			};
+			
+			if (cscr == "CASH") { mytransobj["credit"] = parseFloat(rp['gtot']); }
+			if (cscr == "CREDIT") { mytransobj["debit"] = parseFloat(rp['gtot']); }
+			var update_mytrans = { "$set": mytransobj };
+		  
+			const filter_sale = { "spid": rp['spid'], "transid": rp['transid'], };
+			var update_sale = {
+			  "$set": {
+				"spid": spid, "ledgid": rp['ledgid'], "transid": rp['transid'], "itype": rp['itype'], "billautono": "", "billno": rp['billno'],
+				"billdate": rp['billdate'], "cscr": rp['dbcscr'], "csid": rp['csid'], "amount": parseFloat(rp['gtot']), "billas": rp['billas'],
+				"cmnt": rp['cmnt'], "fyear": fyear,
+			  }
+			};
+			
+			var cashquery = {
+			  "$set": {
+				"ledgid": rp['ledgid'], "transid": rp['transid'], "type": typ, "billno": rp['billno'],
+				"credit": 0, "debit": parseFloat(rp['gtot']), 'date': rp['billdate'], 'comment': rp['cmnt'], "fyear": fyear,
+			  }
+			};
+			
+			await pay_rcpt_cash_update(db, typ, rp, 0, parseFloat(rp["gtot"]), fyear);
+		  
+			await db["trns"].updateOne(filter_mytrans, update_mytrans);
+			await db["sale"].updateOne(filter_sale, update_sale);
+			await PANEL_SALE_PROD(fyear, callback, "", rd, db, rp['spid'], rp['transid'], main);
+		  }
+		  // customer update close final
+		if (mode=="delete"){await deleteSalePurDocuments(db, rp, "sale", "sitm", fyear);} // customer delete close final
 
 	} // customer closed
 	
 }; // csfinalbill finally closed
 
 
-function PANEL_SALE_PROD(fyear, callback, tbl, recdic, db, saleid, transid, main){
+async function PANEL_SALE_PROD(fyear, callback, tbl, recdic, db, saleid, transid, main){
 	var grid = recdic['grid'] ;
 	var ins_data = [];
 	var upd_data = [];
@@ -1166,6 +1439,7 @@ function PANEL_SALE_PROD(fyear, callback, tbl, recdic, db, saleid, transid, main
 	var stk_upd_batch_data = [];
 	var item_del_update = [];
 	var err_items = [];
+	var callbackBoolArr = [];
 	var stkinfo = {'info':'multibat'};
 	var [iadd, iupdt, sno] = [0, 0, -1];
   var idx = 0;
@@ -1176,6 +1450,7 @@ function PANEL_SALE_PROD(fyear, callback, tbl, recdic, db, saleid, transid, main
 	  if (v['itemid'] !="" && (v['qty'] !="" && v['qty'] != 0)){
 		  
 		//if (v['spitemid'] !=""){
+			// console.log("--->",v['spiid'],"<-----", "---->", v['spiid'].length,"<----");
 		if(v['spiid'].length !== 0 ){ 
 		  upd_data = {'spiid':v['spiid'], 'spid':saleid, 'amt':v['amt'],'tdisamt':v['tdisamt'],
 			  'itemid':v['itemid'],'batchno':v['batchno'],'qty':v['qty'],'bonus':v['bonus'],'rate':v['rate'],'srate':v['srate'],
@@ -1186,8 +1461,9 @@ function PANEL_SALE_PROD(fyear, callback, tbl, recdic, db, saleid, transid, main
 		  if(typeof(v["tqty"])!=="undefined"){
 	        stk_upd_sale_data = {'qty':updatedqty,'dbstock':parseInt(v['dbstock']),'stockid':v['stockid'],'itemid':v['itemid'],};
 	        // First Update Stock Details Then Sales_item//
-	           if (main){StkUpdate(tbl, stk_upd_sale_data, db, v['name'], main);}; // deliberatly using StkUpdate, ease of using common function;
-	           Sale_Item_Table_Update(fyear, "", "", upd_data, db, saleid, transid);
+	           if (main){await StkUpdate(tbl, stk_upd_sale_data, db, v['name'], main);}; // deliberatly using StkUpdate, ease of using common function;
+	           const isSaleItemUpdated = await Sale_Item_Table_Update(fyear, "", "", upd_data, db, saleid, transid);
+			   callbackBoolArr.push(isSaleItemUpdated);
         }
 		
 		}
@@ -1203,7 +1479,7 @@ function PANEL_SALE_PROD(fyear, callback, tbl, recdic, db, saleid, transid, main
 				var InsertStockid = getUniqueId()+idx;
   	 		idx += 1;
   	 		console.log(" find1008 StockId Not Found in StkInsert PANEL_SALE_PROD Stock Inserted");
-  	 		StkInsert(tbl, stk_ins_data, db, v['name'], InsertStockid, main);
+  	 		await StkInsert(tbl, stk_ins_data, db, v['name'], InsertStockid, main);
 				};
 		  }
 		  else{
@@ -1227,7 +1503,7 @@ function PANEL_SALE_PROD(fyear, callback, tbl, recdic, db, saleid, transid, main
 							  var itemid = v['stockarray'][i]['itemid'];
 							  // In Sales Stock will Minus;
 							  stk_upd_sale_data = {'qty':-parseInt(v['tqty']),'dbstock':parseInt(v['dbstock']),'stockid':stockid,'itemid':itemid,};
-							  StkUpdate(db, stk_upd_sale_data, db, v['name'], main, infomsg="Sales Stock Updated")
+							  await StkUpdate(db, stk_upd_sale_data, db, v['name'], main, infomsg="Sales Stock Updated")
 							  break
 						  }
 					  }
@@ -1238,83 +1514,92 @@ function PANEL_SALE_PROD(fyear, callback, tbl, recdic, db, saleid, transid, main
   	 					idx += 1;
   	 					stk_ins_data['qty'] = -stk_ins_data["qty"];
   	 					console.log(" find1078 stockarray  Not Found So with StkInsert PANEL_SALE_PROD Stock Inserted with Negative value");
-  	 					StkInsert(tbl, stk_ins_data, db, v['name'], InsertStockid, main);
+  	 					await StkInsert(tbl, stk_ins_data, db, v['name'], InsertStockid, main);
 				 		}
 			  }
 		  }
 
 		  
-		  Sale_Item_Table_Insert(fyear, callback, "", ins_data, db, saleid, transid);
-		  console.log(" find1038 Sale_Item_Table_Insert Finally Saved ");
+		 const isSaleItemInserted = await Sale_Item_Table_Insert(fyear, callback, "", ins_data, db, saleid, transid);
+		 callbackBoolArr.push(isSaleItemInserted);
 		}
 	  }
 	}
+	callback(callbackBoolArr);
    
   }
 
-  function Sale_Item_Table_Insert(fyear, callback, tblname, d, db, saleid, transid){
-	spiid = new ObjectId().toString();
-	var insert_sale_itm = {"spiid":spiid,"spid":saleid,"netamt":parseFloat(d['netamt']),"tdisamt":parseFloat(d['tdisamt']),"csid":d['csid'],"itemid":d['itemid'],
-		"batchno":d["batchno"],"qty":parseInt(d['qty']),"bonus":d['bonus'],"rate":parseFloat(d['rate']),"srate":parseFloat(d['srate']),"rate_a":parseFloat(d['rate_a']),
-		"amt":parseFloat(d['amt']),"dis":parseFloat(d['dis']),"mrp":parseFloat(d['mrp']),"cgst":parseFloat(d['tax1amt']),}
-	  db["sitm"].insertOne(insert_sale_itm).then(function(sale_items){
-		  //callback(["SALE DATA INSERTED SUCCESSFULLY !"]);
-  		console.log("Sale_Item_Table_Insert >>> Reached Here successfully !")
-	  });
-	  
+  async function Sale_Item_Table_Insert(fyear, callback, tblname, d, db, saleid, transid) {
+	const spiid = new ObjectId().toString();
+	const insert_sale_itm = {
+	  "spiid": spiid, "spid": saleid, "netamt": parseFloat(d['netamt']), "tdisamt": parseFloat(d['tdisamt']), "csid": d['csid'], "itemid": d['itemid'],
+	  "batchno": d["batchno"], "qty": parseInt(d['qty']), "bonus": d['bonus'], "rate": parseFloat(d['rate']), "srate": parseFloat(d['srate']), "rate_a": parseFloat(d['rate_a']),
+	  "amt": parseFloat(d['amt']), "dis": parseFloat(d['dis']), "mrp": parseFloat(d['mrp']), "cgst": parseFloat(d['tax1amt']),
 	};
- 
-  function Sale_Item_Table_Update(fyear, callback, tbl, d, db, saleid, transid){
-    const filter = { spiid: d['spiid'], spid : saleid  };
-    const update = { $set: {"netamt":parseFloat(d['netamt']),"tdisamt":parseFloat(d['tdisamt']),"itemid":d['itemid'],"batchno":d['batchno'],
-    "qty":parseInt(d['qty']),"bonus":d['bonus'],"rate":parseFloat(d['rate']),"srate":parseFloat(d['srate']),"rate_a":parseFloat(d['rate_a']),
-    "amt":parseFloat(d['amt']),"dis":parseFloat(d['dis']),"mrp":parseFloat(d['mrp']),"cgst":parseFloat(d['tax1amt']),}};
-    db["sitm"].updateOne(filter, update).then(function(res) {
-        console.log("Line 1079 update successful, Sale_Item_Table_Update");
-      })
-      .catch(function(err) {
-        console.log("Error On Sale_Item_Table_Update Line 1118 >>> ", err);
-      });
- };
-
-function StkInsert(tbl, d, db, itemname, stockid, main){
-  var row = {'name':"itemname", 'flag':false, 'info':"stock insert",'msg':"---",};
-  if(main === false){return {'name':itemname, 'flag':false, 'info':"CHALLAN_SAVED",'msg':"---",};}
-  else{
-
-	var insert_Stk = {
-		"stockid":stockid,
-		"itemid" :d['itemid'],
-		"batchno" : d['batchno'],
-		"qty" : parseInt(d['qty']),
-		"expdate": d['expdate'] ,    
-	};
-	db['stk'].insertOne(insert_Stk).then(function(stk_ins_details){
-	})
-
-   }
-}
-
-
-function StkUpdate(tbl, d, db, itemname, main, infomsg="N A"){
-	
-    const filter = { "stockid": d['stockid'], "itemid":d["itemid"] };
-    const update = { "$inc": {"qty": d['qty'],}};
-    //d = {'qty':updatedqty,'dbstock':parseInt(v['dbstock']),'stockid':v['stockid'],};
-    //const update = { $set: {qty: d['dbstock'] + d['qty'],}}; // Calculation is pending (have to find previous qty before update and given qty after update)
-	
-    db["stk"].updateOne(filter, update)
-      .then(function(res) {
-				//??//
-      })
-      .catch(function(err) {
-        console.log(err);
-      });
-}
-    
-function PANEL_PURCHASE_PROD(fyear, tblname, tbl, recdic, db, purcid, transid, main){
-
   
+	try {
+	  const sale_items = await db["sitm"].insertOne(insert_sale_itm);
+	  //callback(["SALE DATA INSERTED SUCCESSFULLY !"]);
+	  return true;
+	} catch (error) {
+	  console.error(error);
+	  return false;
+	}
+  }
+
+async function Sale_Item_Table_Update(fyear, callback, tbl, d, db, saleid, transid) {
+	const filter = { spiid: d['spiid'], spid: saleid };
+	const update = {
+		$set: {
+		"netamt": parseFloat(d['netamt']), "tdisamt": parseFloat(d['tdisamt']), "itemid": d['itemid'], "batchno": d['batchno'],
+		"qty": parseInt(d['qty']), "bonus": d['bonus'], "rate": parseFloat(d['rate']), "srate": parseFloat(d['srate']), "rate_a": parseFloat(d['rate_a']),
+		"amt": parseFloat(d['amt']), "dis": parseFloat(d['dis']), "mrp": parseFloat(d['mrp']), "cgst": parseFloat(d['tax1amt']),
+		}
+	};
+	
+	try {
+		const res = await db["sitm"].updateOne(filter, update);
+		return true;
+	} catch (err) {
+		return false;
+	}
+}
+
+ async function StkInsert(tbl, d, db, itemname, stockid, main) {
+    if (main === false) {
+        return { 'name': itemname, 'flag': false, 'info': "CHALLAN_SAVED", 'msg': "---" };
+    } else {
+        var row = { 'name': "itemname", 'flag': false, 'info': "stock insert", 'msg': "---" };
+        try {
+            var insert_Stk = {
+                "stockid": stockid,
+                "itemid": d['itemid'],
+                "batchno": d['batchno'],
+                "qty": parseInt(d['qty']),
+                "expdate": d['expdate'],
+            };
+
+            await db['stk'].insertOne(insert_Stk);
+            // Handle success if needed
+        } catch (err) {
+            console.log(err);
+        }
+    }
+}
+
+async function StkUpdate(tbl, d, db, itemname, main, infomsg = "N A") {
+    try {
+        const filter = { "stockid": d['stockid'], "itemid": d["itemid"] };
+        const update = { "$inc": { "qty": d['qty'] } };
+
+        const res = await db["stk"].updateOne(filter, update);
+    } catch (err) {
+        console.log(err);
+    }
+}
+
+    
+async function PANEL_PURCHASE_PROD(fyear, tblname, tbl, recdic, db, purcid, transid, main, callback){
 	var grid = recdic['grid'] ;
 	var ins_data = [];
 	var upd_data = [];
@@ -1324,42 +1609,37 @@ function PANEL_PURCHASE_PROD(fyear, tblname, tbl, recdic, db, purcid, transid, m
 	var item_del_update = [];
 	var err_items = [];
 	var [iadd, iupdt, sno] = [0, 0, -1];
-
-	inforow = [] ;
+	var callbackBoolArr = [];
+	inforow = [] ;	
 	var idx = 0
 
 	for (const [k, v] of Object.entries(grid)){
 
 		if (v['itemid'] !="" && (v['qty'] !="" && v['qty'] !=0)){
-			// if(typeof(v['spiid']) !== "undefined" || v['spiid'] !== '' ){ 
 			if(v['spiid'].length !== 0 ){ 
 				upd_data = {'spid':purcid, 'amt':v['amt'],'tdisamt':v['tdisamt'],'csid':v['csid'], 
 				'itemid':v['itemid'],'bat':v['batchno'],'qty':v['qty'],'bonus':v['bonus'],'rate':v['rate'],'srate':v['srate'],
 				'rate_a':v['rate_a'],'dis':v['dis'],'mrp':v['mrp'],'tax1amt':v['cgst'],'pnet':v['pnet'],'netamt':v['netamt'],
 				'spid':purcid,'spiid':v['spiid']};
-				updatedqty = parseInt(v['tqty'])-parseInt(v['staticqty']); // catching difference of qty to be updated
+				updatedqty = parseInt(v['tqty'])-parseInt(v['staticqty']); 
 
 				if(typeof(v["tqty"])!=="undefined"){
 					stk_upd_pur_data = {'qty':updatedqty,'dbstock':parseInt(v['dbstock']),'stockid':v['stockid'],'itemid':v['itemid'],};
-					// First Update Stock Details Then Sales_item//
-					if (main){StkUpdate(tbl, stk_upd_pur_data, db, v['name'], main);};
-					Purchase_Item_Table_Update(fyear, v['name'], tbl, upd_data, db, purcid, transid, main);
+					if (main){await StkUpdate(tbl, stk_upd_pur_data, db, v['name'], main);};
+					const isItemUpdate = await Purchase_Item_Table_Update(fyear, v['name'], tbl, upd_data, db, purcid, transid, main, callback);
+					callbackBoolArr.push(isItemUpdate);
 				}
-			
 			}
 			else{
 				ins_data = {'spid':purcid, 'amt':v['amt'],'tdisamt':v['tdisamt'],'csid':v['csid'], 
 				'itemid':v['itemid'],'bat':v['batchno'],'qty':v['qty'],'bonus':v['bonus'],'rate':v['rate'], 'srate':v['srate'],
 				'rate_a':v['rate_a'],'dis':v['dis'],'mrp':v['mrp'],'tax1amt':v['cgst'],'pnet':v['pnet'],'netamt':v['netamt'],};
-
-				// if 'stockid' available then stock will update in qty using stockid otherwise insert new row in stock table;
-				// if (v['stockid'] == null ){
 				if (!v['stockarray'].length > 0){
 					if (main){
 						stk_ins_data = {'itemid':v['itemid'],'batchno':v['batchno'],'qty':parseInt(v['tqty']),'expdate':v['expdate'],};
 									var InsertStockid = getUniqueId()+idx;
 									idx += 1;
-						StkInsert(tbl, stk_ins_data, db, v['name'], InsertStockid, main);
+						await StkInsert(tbl, stk_ins_data, db, v['name'], InsertStockid, main);
 						console.log(" find821 entered in StkInsert Stock Inserted");  
 					};
 				}
@@ -1386,149 +1666,230 @@ function PANEL_PURCHASE_PROD(fyear, tblname, tbl, recdic, db, purcid, transid, m
 								if(stk_ins_flag){
 									var InsertStockid = getUniqueId()+idx;
 									idx += 1;
-									StkInsert(tbl, v, db, v['name'], InsertStockid, main)
+									await StkInsert(tbl, v, db, v['name'], InsertStockid, main)
 								}
-								else{StkUpdate(tbl, stk_upd_pur_data, db, v['name'], main);}
+								else{await StkUpdate(tbl, stk_upd_pur_data, db, v['name'], main);}
 						}else{
 							idx += 1;
 							var InsertStockid = getUniqueId()+idx;
-							StkInsert(tbl, v, db, v['name'], InsertStockid, main)
+							await StkInsert(tbl, v, db, v['name'], InsertStockid, main)
 						}
 					
 					};// For main==true NOT FOR CHALLAN
 				}
 				
-				siteminfo =Purchase_Item_Table_Insert(fyear, v['name'], tbl, ins_data, db, purcid, transid, main);
-				inforow.push(siteminfo);;
-			
+				const siteminfo = await Purchase_Item_Table_Insert(fyear, v['name'], tbl, ins_data, db, purcid, transid, main, callback);
+				callbackBoolArr.push(siteminfo);
+				
 			}
+			// console.log(callbackBoolArr);
+			
 
 		}
 	}
+	callback(callbackBoolArr);
 
 	return inforow;
 }
 
 
-function Purchase_Item_Table_Insert(fyear, itemname, tbl, d, db, purcid, transid, main){
-	spiid = new ObjectId().toString();
-	var insert_purchase_itm = {"spiid":spiid,"spid":purcid,"netamt":parseFloat(d['netamt']),"tdisamt":parseFloat(d['tdisamt']),
-		"csid":d['csid'],"itemid":d['itemid'],"batchno":d["bat"],"qty":parseInt(d['qty']),"bonus":d['bonus'],"rate":parseFloat(d['rate']),
-		"srate":parseFloat(d['srate']),"rate_a":parseFloat(d['rate_a']),"amt":parseFloat(d['amt']),"dis":parseFloat(d['dis']),
-		"mrp":parseFloat(d['mrp']),"cgst":parseFloat(d['tax1amt']),};
-	if(main){	
-			db["pitm"].insertOne(insert_purchase_itm).then(function(purchase_item_id){})
-		}else{
-			//For CHALLAN 
-			db["pitmo"].insertOne(insert_purchase_itm).then(function(purchase_item_id){})
-		}
-  }
- 
+async function Purchase_Item_Table_Insert(fyear, itemname, tbl, d, db, purcid, transid, main, callback) {
+    try {
+        const spiid = new ObjectId().toString();
+        const insert_purchase_itm = {
+            "spiid": spiid,
+            "spid": purcid,
+            "netamt": parseFloat(d['netamt']),
+            "tdisamt": parseFloat(d['tdisamt']),
+            "csid": d['csid'],
+            "itemid": d['itemid'],
+            "batchno": d["bat"],
+            "qty": parseInt(d['qty']),
+            "bonus": d['bonus'],
+            "rate": parseFloat(d['rate']),
+            "srate": parseFloat(d['srate']),
+            "rate_a": parseFloat(d['rate_a']),
+            "amt": parseFloat(d['amt']),
+            "dis": parseFloat(d['dis']),
+            "mrp": parseFloat(d['mrp']),
+            "cgst": parseFloat(d['tax1amt']),
+        };
 
- function Purchase_Item_Table_Update(fyear, itemname, tbl, d, db, purcid, transid, main){
-  // netrate will store in purchase_inv column
-  // tdisamt will store in bill_date column
-  // cgst amount will store in exp_date column
-  // amount will store iPurchase_Item_Table_Insertn sale_price_b column
+        let collection;
+        if (main) {
+            collection = "pitm";
+        } else {
+            collection = "pitmo";
+        }
 
-    const filter = { spiid: d['spiid'], spid : purcid  };
-    const update = { $set: {"netamt":parseFloat(d['netamt']),"tdisamt":parseFloat(d['tdisamt']),"itemid":d['itemid'],"batchno":d['bat'],
- 		      "qty":parseInt(d['qty']),"bonus":d['bonus'],"rate":parseFloat(d['rate']),"srate":parseFloat(d['srate']),"rate_a":parseFloat(d['rate_a']),
- 		      "amt":parseFloat(d['amt']),"dis":parseFloat(d['dis']),"mrp":parseFloat(d['mrp']),"cgst":parseFloat(d['tax1amt']),}};
+        const result = await db[collection].insertOne(insert_purchase_itm);
 
-    if(main){var table = "pitm"}
-    else{var table = "pitmo"}	
-
-    db[table].updateOne(filter, update)
-      .then(function(res) {
-        console.log("update successful, Purchase_Item_Table_Update");
-		return [false, "PurchaseItem", "Done !"];
-      })
-      .catch(function(err) {
+        if (result && result.insertedId) {
+            return true;
+        } else {
+            return false;
+        }
+    } catch (err) {
         console.log(err);
-      });
+        callback({ "success": false });
+    }
+}
+
+async function Purchase_Item_Table_Update(fyear, itemname, tbl, d, db, purcid, transid, main, callback) {
+	// netrate will store in purchase_inv column
+	// tdisamt will store in bill_date column
+	// cgst amount will store in exp_date column
+	// amount will store in sale_price_b column
   
- };
-
-
- var SPINFO = function(db, ledgid, transid, cs, sp, spitm, fyear, cb) {
-	db[cs].find({"ledgid":ledgid}).limit(1).toArray().then(function(partydetails){
-      db[sp].find({"transid":transid,"ledgid":ledgid,}).toArray().then(function(sprows){
-        var getSPID = sprows[0]["spid"];
-        for(var i=0; i<sprows.length; i++){
-        sprows[i]["name"]=partydetails[0]["name"];
-        sprows[i]["add1"]=partydetails[0]["add1"];
-        sprows[i]["add2"]=partydetails[0]["add2"];
-        sprows[i]["stcode"]=partydetails[0]["add3"];
-        sprows[i]["regn"]=partydetails[0]["regn"];
-        sprows[i]["gstn"]=partydetails[0]["gstn"];
-        sprows[i]["mode"]=partydetails[0]["mode"];
-        sprows[i]["phone"]=partydetails[0]["phone"];
-        sprows[i]["invdate"]=sprows[i]["billdate"];
-      } 
-      
-      db[spitm].find({"spid":getSPID,}).toArray().then(function(spitems){
-		
-          let index = 0;
-        
-          for(let j=0; j<spitems.length; j++){
-            let itemid = spitems[j]["itemid"]; // first collect itemid present in sales_item then search into products collection
-            let batchno = spitems[j]["batchno"]; // first collect batchno present in sales_item then search into stock collection
-            
-            // must run and search inside for loop;
-            db["itm"].find({"itemid":itemid,}).toArray().then(function(itemrows){
-              // update spitems with item details;
-              let itemid = spitems[j]["itemid"]; // retriving right order;
-              let batchno = spitems[j]["batchno"]; // retriving right order;
-              
-              spitems[j]["name"]=itemrows[0]["name"]
-              spitems[j]["pack"]=itemrows[0]["pack"]
-              spitems[j]["unit"]=itemrows[0]["unit"]
-              spitems[j]["staticqty"]=spitems[j]["qty"]; // ** staticqty will be further used when db stock update in bill update, to cash accurate update qty
-              spitems[j]["rate_a"]="0.0"; // Not used write now; could be use later on;
-              spitems[j]["tax1"]=itemrows[0]["cgst"]
-              spitems[j]["tax2"]=itemrows[0]["sgst"]
-              spitems[j]["tax"]=itemrows[0]["gst"]
-              spitems[j]["hsn"]=itemrows[0]["hsn"]
-              spitems[j]["sgst"]=spitems[j]["cgst"]
-              spitems[j]["prate"]=itemrows[0]["netrate"]
-              var amttot = spitems[j]["amt"]-spitems[j]["tdisamt"]
-              var cgstamt = spitems[j]["cgst"]
-              var ttaxamt = cgstamt*2
-              var netamt = amttot+ttaxamt
-              spitems[j]["amttot"]=amttot.toFixed(2);
-              spitems[j]["ttaxamt"]=ttaxamt.toFixed(2);
-              spitems[j]["netamt"]=netamt.toFixed(2);
-			  spitems[j]["netrate"]= netamt/parseInt(spitems[j]["qty"]).toFixed(2);
-              spitems[j]["stockarray"]=[{"stockid":null, "expdate":"", "qty":"", "batchno":"",}];
-              db["stk"].find({"itemid":itemid,"batchno":batchno,}).toArray().then(function(stkrows){
-              // Exact Copying from previous SQL method; can improve to better than this, after understaing this proccess
-              // IF Stock Available ==>> split method is implemented in javascript, so, copying the same  
-				if(stkrows.length > 0){
-                	spitems[j]["stockarray"]=stkrows;
-					spitems[j]["expdate"] = stkrows[0]['expdate'];
-					spitems[j]["stockid"] = stkrows[0]['stockid'];
-				}
-				else {
-					spitems[j]["stockarray"]=[{"stockid":null, "expdate":"", "qty":"", "batchno":"",}];
-				}
-            }) // Fifth Promise Closed here (Stock Details)
-              //console.log("==> push data", index)
-            index+= 1;
-          }) // Fourth Promise Inside For Loop Closed here (Items Details)
-          }
-        setTimeout(() => {cb(["Store Error if Any"], sprows, spitems, []);}, 1000)
-
-      })// Third Promisse Closed here (spitems Details)
-      
-      }) // Second Promisse Closed here (Sales Details)
-    }) // First Promisse Closed here (Customer Details)
+	const filter = { spiid: d['spiid'], spid: purcid };
+	const update = {
+	  $set: {
+		"netamt": parseFloat(d['netamt']), "tdisamt": parseFloat(d['tdisamt']), "itemid": d['itemid'], "batchno": d['bat'],
+		"qty": parseInt(d['qty']), "bonus": d['bonus'], "rate": parseFloat(d['rate']), "srate": parseFloat(d['srate']), "rate_a": parseFloat(d['rate_a']),
+		"amt": parseFloat(d['amt']), "dis": parseFloat(d['dis']), "mrp": parseFloat(d['mrp']), "cgst": parseFloat(d['tax1amt']),
+	  }
 	};
+  
+	let table;
+	if (main) {
+	  table = "pitm";
+	} else {
+	  table = "pitmo";
+	}
+  
+	try {
+	  const res = await db[table].updateOne(filter, update);
+	  return true;
+	} catch (err) {
+	  console.error(err);
+	  return false;
+	}
+}
+  
 
+var SPINFO = async function (db, ledgid, transid, cs, sp, spitm, fyear) {
+	try {
+	  const partydetails = await db[cs].find({ "ledgid": ledgid }).limit(1).toArray();
+	  const sprows = await db[sp].find({ "transid": transid, "ledgid": ledgid }).toArray();
+	  const getSPID = sprows[0]["spid"];
+  
+	  for (var i = 0; i < sprows.length; i++) {
+		for (const [k, v] of Object.entries(partydetails[0])) {
+		  sprows[i][k] = v;
+		}
+		sprows[i]["invdate"] = sprows[i]["billdate"];
+	  }
+  
+	  const spitems = await db[spitm].find({ "spid": getSPID }).toArray();
+  
+	  for (let j = 0; j < spitems.length; j++) {
+		let itemid = spitems[j]["itemid"];
+		let batchno = spitems[j]["batchno"];
+		const itemrows = await db["itm"].find({ "itemid": itemid }).toArray();
+  
+		spitems[j]["name"] = itemrows[0]["name"];
+		spitems[j]["pack"] = itemrows[0]["pack"];
+		spitems[j]["unit"] = itemrows[0]["unit"];
+		spitems[j]["staticqty"] = spitems[j]["qty"];
+		spitems[j]["rate_a"] = "0.0";
+		spitems[j]["gst"] = itemrows[0]["gst"];
+		spitems[j]["hsn"] = itemrows[0]["hsn"];
+		spitems[j]["sgst"] = spitems[j]["cgst"];
+		spitems[j]["cgst"] = spitems[j]["cgst"];
+		spitems[j]["prate"] = itemrows[0]["netrate"];
+		var amttot = spitems[j]["amt"] - spitems[j]["tdisamt"];
+		var cgstamt = spitems[j]["cgst"];
+		var ttaxamt = cgstamt * 2;
+		var netamt = amttot + ttaxamt;
+		spitems[j]["amttot"] = amttot.toFixed(2);
+		spitems[j]["ttaxamt"] = ttaxamt.toFixed(2);
+		spitems[j]["netamt"] = netamt.toFixed(2);
+		spitems[j]["netrate"] = (netamt / parseInt(spitems[j]["qty"])).toFixed(2);
+		const stkrows = await db["stk"].find({ "itemid": itemid, "batchno": batchno }).toArray();
+  
+		if (stkrows.length > 0) {
+		  spitems[j]["stockarray"] = stkrows;
+		  spitems[j]["expdate"] = stkrows[0]['expdate'];
+		  spitems[j]["stockid"] = stkrows[0]['stockid'];
+		} else {
+		  spitems[j]["stockarray"] = [{ "stockid": null, "expdate": "", "qty": "", "batchno": "" }];
+		}
+	  }
+	  
+	  return [sprows, spitems, []];
+	} catch (error) {
+	  console.error(error);
+	  return [error, [], [], []];
+	}
+  };
+	function GST_REPORT(db, ledgid, billas, itype, frm, tod, sp, typ, taxslab, fyear, callback){
+		//itype >>> 1 == (Without GSTN/NON-Register Party)
+		//itype >>> 2 == (HAS GSTN/Register Party)
+		//itype >>> 8 == PURCHASE RETURN (* in DB transaction Table                                           f
+		//itype >>> 9 == SALES RETURN (* in DB transaction Table                                         
+		
+		if (taxslab.length < 1){
+			callback({})
+			return ;
+		  }
+		var filter = {"ledgid":ledgid,"billdate":{"$gte":frm, "$lte":tod},"billas":{"$in":billas},"itype":{"$in":itype},};  
+		if (ledgid.trim()===""){
+			filter = {"billdate":{"$gte":frm, "$lte":tod},"billas":{"$in":billas},"itype":{"$in":itype},};
+		}
+		 
+		var spitem = "sitm";
+		var cscoll = "cust";
+		if(sp==="purchase"){
+			sp="pur"; 
+		  spitem = "pitm";
+		  cscoll = "sup";
+		}
+		let collobj = {};
+		db[sp].find(filter).toArray().then(async function(spdata){
+		  var partyname = "";
+		  var gstn = "";
+		  var stcode = "";
+		  var spiid = "";
+		  for(const spd of spdata) {
+			//collobj[spd["billno"]]={"billno":spd["billno"],"ledgid":spd["ledgid"]};
+			await db[cscoll].find({"ledgid":spd["ledgid"]}).toArray().then(async function(partydata){
+			  partyname = partydata[0]["name"];
+			  gstn=partydata[0]["gstn"];
+			  stcode=partydata[0]["stcode"];
+			})
+			await db[spitem].find({"spid":spd["spid"]}).toArray().then(async function(spitemdata){
+			  
+			  for(const spitmd of spitemdata) {
+				await db["itm"].find({"itemid":spitmd["itemid"],"gst":{"$in":taxslab}}).toArray().then(async function(itemdata){
+				  if(itemdata.length>0){
+				   
+					collobj[spitmd["spiid"]]={"billno":spd["billno"],"billdate":spd["billdate"],"ledgid":spd["ledgid"],
+											"name":partyname,"gstn":gstn, "stcode":stcode};
+					collobj[spitmd["spiid"]]["itemname"]=itemdata[0]["name"];
+					collobj[spitmd["spiid"]]["gst"]=itemdata[0]["gst"];
+					collobj[spitmd["spiid"]]["cgst"]=spitmd["cgst"];
+					collobj[spitmd["spiid"]]["sgst"]=spitmd["cgst"];
+					collobj[spitmd["spiid"]]["qty"]=spitmd["qty"];
+					collobj[spitmd["spiid"]]["netamt"]=spitmd["netamt"];
+					collobj[spitmd["spiid"]]["amt"]=spitmd["amt"];
+					collobj[spitmd["spiid"]]["tdisamt"]=spitmd["tdisamt"];
+				 }
+				}) 
+			  } // second for loop end
+				
+			})
+		  } // first for loop end
+		  await callback(collobj);
+		})  
+	  }
+	  
+	  
 module.exports.add_to_db = add_to_db;
 module.exports.csfind_by_name = csfind_by_name; 
 module.exports.ledger_n_tax_search = ledger_n_tax_search;
 module.exports.csfinalbill = csfinalbill;
 module.exports.SPINFO = SPINFO ;
+module.exports.GST_REPORT = GST_REPORT ;
+
 
 
