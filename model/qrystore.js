@@ -1612,10 +1612,11 @@ async function PANEL_PURCHASE_PROD(fyear, tblname, tbl, recdic, db, purcid, tran
 	var callbackBoolArr = [];
 	inforow = [] ;	
 	var idx = 0
-
+	// console.log(grid);
 	for (const [k, v] of Object.entries(grid)){
 
 		if (v['itemid'] !="" && (v['qty'] !="" && v['qty'] !=0)){
+			
 			if(v['spiid'].length !== 0 ){ 
 				upd_data = {'spid':purcid, 'amt':v['amt'],'tdisamt':v['tdisamt'],'csid':v['csid'], 
 				'itemid':v['itemid'],'bat':v['batchno'],'qty':v['qty'],'bonus':v['bonus'],'rate':v['rate'],'srate':v['srate'],

@@ -239,30 +239,34 @@ app.get('/speditcalculate', async function (req, res) {
   }
 });
 
-app.post('/sendbilltodb', (req, res) => {
-  
-  var idf = req.body.idf;
-  var mode = req.body.mode;
-  var redicdata = req.body.getdata;
+app.post('/sendbilltodb', async (req, res) => {
+  try {
+    const idf = req.body.idf;
+    const mode = req.body.mode;
+    const redicdata = req.body.getdata;
+    const gridArray = Object.values(redicdata.grid);
+    redicdata.grid = gridArray;
+    let main = req.body.main;
 
-  var gridArray = Object.values(redicdata.grid);
-  redicdata.grid = gridArray;
-  var main = req.body.main; 
-
-  if(typeof(main) === "undefined"){
-    //main true for Cash dbcscr 1 credit false for challan
-    main = true;
-  }
-  qry.csfinalbill(mlog.tclc, idf, redicdata, mode, main, async function(data) {
-    const isSuccess = data.every(value => value === true);
-    if (isSuccess) {
-        res.json({"success": true});
-    } else {
-        res.json({"success": false});
+    if (typeof(main) === "undefined") {
+      // main true for Cash dbcscr 1 credit false for challan
+      main = true;
     }
+    // console.log(redicdata);
+    qry.csfinalbill(mlog.tclc, idf, redicdata, mode, main, async function(data) {
+      const isSuccess = data.every(value => value === true);
+      if (isSuccess) {
+        res.json({"success": true});
+      } else {
+        res.json({"success": false});
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    res.json({"success": false});
+  }
 });
-  
-});
+
 
 app.get('/addtodb',function(req,res){
   var rscr = req.session.rscr;
@@ -303,7 +307,7 @@ app.post('/getTotalsp', async function(req, res){
       amount : "",
       billno : "",
       billdate : "",
-      itype : "",
+      cscr : "",
     }
     const result = mlog.tclc['pur'].find({}).sort({ _id: -1 }).limit(1).toArray();
     result.then(function(fin){
@@ -313,7 +317,7 @@ app.post('/getTotalsp', async function(req, res){
       datatosend['amount'] = fin[0]['amount'];
       datatosend['billno'] = fin[0]['billno'];
       datatosend['billdate'] = fin[0]['billdate'];
-      datatosend['itype'] = fin[0]['itype'];
+      datatosend['cscr'] = fin[0]['cscr'];
       const finresult = mlog.tclc['sup'].find({ledgid : fin[0]['ledgid']}).limit(1).toArray();
       finresult.then(function(val){
         if(val.length > 0){
@@ -349,7 +353,7 @@ app.post('/getTotalsp', async function(req, res){
         amount: resultArr[i]['amount'],
         billno: resultArr[i]['billno'],
         billdate: resultArr[i]['billdate'],
-        itype: resultArr[i]['itype'],
+        cscr: resultArr[i]['cscr'],
       };
   
       data.push(datatosend);

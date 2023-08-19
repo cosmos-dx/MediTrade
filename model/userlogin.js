@@ -298,6 +298,11 @@ function MongoConnect(getuseraddress){
   return [tclc, mgodb];
 };
 
+app.use((req, res, next) => {
+  const clientIP = req.connection.remoteAddress;
+  console.log(`Incoming request from IP: ${clientIP}`);
+  next();
+});
 
 
 app.get('/',(req,res) => { 
@@ -368,7 +373,7 @@ app.use(express.static(Path.join(parentDirectory, 'public')));
 app.post('/medilogin', async function(request, response) {
   var username = request.body.username;
   var password = request.body.password;
-
+  console.log(username, password);
   if (username && password) {
     try {
       const mnogmemberdb = MemberConnect();
