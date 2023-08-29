@@ -30,7 +30,7 @@ app.use(cors(options));
 const oneDay = 1000 * 60 * 60 * 24;
 
 var sess = {
-  secret: , //add your secret key
+  secret: 'thisismyrandomkeyformeditradeandiknowiamnotageniusbutiamtendingtobe',
   cookie: {maxAge: oneDay, 
           "username":null,"userid":null,
           rscr : rscr
@@ -113,7 +113,7 @@ if(lastfyeardict){
 }
 
 function AdminMongoConnect(){
-  var url = '' //db url;
+  var url = 'mongodb://0.0.0.0:27017//';
   //var url = 'mongodb://localhost:27017//'+getuseraddress;
   var client = new MongoClient(url);
   client.connect();
@@ -260,14 +260,8 @@ async function AdminConnect() {
   }
 }
 
-<<<<<<< HEAD
 function MongoConnect(getuseraddress) {
   var url = 'mongodb://0.0.0.0:27017//' + getuseraddress;
-=======
-function MongoConnect(getuseraddress){
-  var url = ''+getuseraddress;
-  //var url = 'mongodb://localhost:27017//'+getuseraddress;
->>>>>>> 937b2d07e08de72525cd8f192f97d557ef90b515
   var client = new MongoClient(url);
 
   if (MongoConnect.connections && MongoConnect.connections[url]) {
