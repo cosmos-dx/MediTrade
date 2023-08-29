@@ -10,7 +10,7 @@ const sbsearch = require('./model/dbsearch');
 const { hostname } = require('os');
 // const customer_model = require('./rmsconfig/model/customer');
 const wifi = '192.168.29.116'  ;
-const port = process.env.PORT ||  80 ;
+const port = process.env.PORT ||  8080 ;
 const app = myapp.app ;
 
 
@@ -29,4 +29,4 @@ app.engine('html', require('ejs').renderFile);
 module.exports.app = app;
 
 
-app.listen(port ,   () => console.log(`Script ser1.js is Running at port ${port}`));
+app.listen(port, () => console.log(`Script ser1.js is Running at port ${port}`));

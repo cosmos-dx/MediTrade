@@ -11,11 +11,11 @@ app.set('views',__dirname + '/vws');
 
 
 
-app.get('/partysearchenter',function(req,res){ 
+app.get('/partysearchenter',async function(req,res){ 
   var column = "name";
- 
+  console.log("aehi jaa");
   var idf = req.query.idf.trim(); // removal of white space is important
- 
+  let db_info = req.query.identity;
   if (typeof req.query.getcolumn == 'undefined'){
       column = "all"; // send message to fetch all column available in select query
      }
@@ -24,10 +24,14 @@ app.get('/partysearchenter',function(req,res){
    }
    var textlike = req.query.name.toUpperCase() ;
    var limit = req.query.limit;
-   
-   qry.csfind_by_name(mlog.tclc, "GET", idf, textlike, column, limit, function(data){
+   let tclc_db = mlog.MongoConnect(db_info);
+   var tclc = tclc_db[0];
+   var mgodb = tclc_db[1];
+   var client = tclc_db[2];
+   qry.csfind_by_name(tclc, "GET", idf, textlike, column, limit, function(data){
          res.send(JSON.stringify(data));
-     });
+         
+    });
  
  });
  
@@ -49,7 +53,11 @@ app.get('/partysearchenter',function(req,res){
 app.get('/itemsearchenter',function(req,res){
   var column = "name";
   var idf = req.query.idf.trim(); // removal of white space is important
-  
+  let db_info = req.query.identity;
+  let tclc_db = mlog.MongoConnect(db_info);
+  var tclc = tclc_db[0];
+  var mgodb = tclc_db[1];
+  var client = tclc_db[2];
   if (typeof req.query.getcolumn == 'undefined'){
      column = "all"; // send message to fetch all column available in select query
     }
@@ -57,7 +65,7 @@ app.get('/itemsearchenter',function(req,res){
     column = req.query.getcolumn;
   }
   var limit = parseInt(req.query.limit);
-  qry.csfind_by_name(mlog.tclc, "GET", idf, req.query.name.toUpperCase(), column, limit, function(data){
+  qry.csfind_by_name(tclc, "GET", idf, req.query.name.toUpperCase(), column, limit, function(data){
         res.send(JSON.stringify(data));
     });
   
@@ -78,8 +86,12 @@ app.post('/itemsearchenter', (req, res) => {
 app.get('/batchsearch', async function (req, res) {
   var idf = req.query.idf;
   // if (idf == 'undefined') return res.json({});
-
-  const findResult = await mlog.tclc['stk'].find({"itemid": idf}).sort({'itemid': -1}).toArray();
+  let db_info = req.query.identity;
+  let tclc_db = mlog.MongoConnect(db_info);
+   var tclc = tclc_db[0];
+   var mgodb = tclc_db[1];
+   var client = tclc_db[2];
+  const findResult = await tclc['stk'].find({"itemid": idf}).sort({'itemid': -1}).toArray();
   res.json(findResult);
   
   
@@ -92,8 +104,12 @@ app.post('/sppartysearch',function(req,res){
   var limit = {"frm":frm,"tod":req.body.tod,
           "itype":req.body.itype,"billas":req.body.billas, "partyname": req.body.partyname, "billno": req.body.billno}; 
   
-  
-  qry.csfind_by_name(mlog.tclc, "POST", idf, req.body.searchtxt.toUpperCase(), column, limit, function(data){
+   let db_info = req.body.identity;
+   let tclc_db = mlog.MongoConnect(db_info);
+   var tclc = tclc_db[0];
+   var mgodb = tclc_db[1];
+   var client = tclc_db[2];
+  qry.csfind_by_name(tclc, "POST", idf, req.body.searchtxt.toUpperCase(), column, limit, function(data){
     res.setHeader('Content-Type', 'application/json');
         res.send(JSON.stringify(data));
     });
@@ -136,7 +152,6 @@ app.get('/speditcalculate', async function (req, res) {
         "pitm",
         fyear
       );
-      console.log(itemrows);
 
       if (rows) {
         rows[0]['tamt'] = tamt;
@@ -247,13 +262,18 @@ app.post('/sendbilltodb', async (req, res) => {
     const gridArray = Object.values(redicdata.grid);
     redicdata.grid = gridArray;
     let main = req.body.main;
+    let db_info = req.body.identity;
+    let tclc_db = mlog.MongoConnect(db_info);
+    var tclc = tclc_db[0];
+    var mgodb = tclc_db[1];
+    var client = tclc_db[2];
 
     if (typeof(main) === "undefined") {
       // main true for Cash dbcscr 1 credit false for challan
       main = true;
     }
     // console.log(redicdata);
-    qry.csfinalbill(mlog.tclc, idf, redicdata, mode, main, async function(data) {
+    qry.csfinalbill(tclc, idf, redicdata, mode, main, async function(data) {
       const isSuccess = data.every(value => value === true);
       if (isSuccess) {
         res.json({"success": true});
@@ -275,8 +295,13 @@ app.get('/addtodb',function(req,res){
   var column = req.query.getcolumn;
   var limit = req.query.limit;
   var mode = req.query.mode;
+  let db_info = req.query.identity;
+  let tclc_db = mlog.MongoConnect(db_info);
+  var tclc = tclc_db[0];
+  var mgodb = tclc_db[1];
+  var client = tclc_db[2];
   console.log(idf, text, column, limit, mode);
-  qry.add_to_db(mlog.tclc, idf, text, column, mode, limit, function(data){
+  qry.add_to_db(tclc, idf, text, column, mode, limit, function(data){
         res.send(JSON.stringify(data));
     });
 
@@ -391,7 +416,6 @@ app.post('/getTotalsp', async function(req, res){
     data += obj.amount;
   }
   res.json({ [req.body.idf] : data});
-
 })
 app.post('/addtodb',function(req,res){
   var rscr = req.session.rscr;
@@ -400,8 +424,13 @@ app.post('/addtodb',function(req,res){
   var column = req.body.getcolumn;
   var limit = 1;
   var mode = req.body.mode;
+  let db_info = req.body.identity;
+  let tclc_db = mlog.MongoConnect(db_info);
+  var tclc = tclc_db[0];
+  var mgodb = tclc_db[1];
+  var client = tclc_db[2];
   console.log(idf, text, column, mode, limit);
-  qry.add_to_db(mlog.tclc, idf, text, column, mode, limit, function(data){
+  qry.add_to_db(tclc, idf, text, column, mode, limit, function(data){
         res.send(JSON.stringify(data));
   });
 
@@ -481,8 +510,13 @@ app.post('/ledgersearch', function(req, res){
   var itype = req.body.itype;
   var billas = req.body.billas;
   var limitrange = req.body.limitrange;
+  let db_info = req.body.identity;
+  let tclc_db = mlog.MongoConnect(db_info);
+  var tclc = tclc_db[0];
+  var mgodb = tclc_db[1];
+  var client = tclc_db[2];
   // csonsole.log("db seardch --- >>> ", idf, text, ledgid,frm, tod, itype, billas, limitrange);
-  qry.ledger_n_tax_search(mlog.tclc, idf, text, ledgid, frm, tod, itype, billas, fyear, limitrange, function(data){
+  qry.ledger_n_tax_search(tclc, idf, text, ledgid, frm, tod, itype, billas, fyear, limitrange, function(data){
     let i,j;
   for (let i = 0; i < data.length; i++) {
     const obj = data[i];
@@ -509,13 +543,18 @@ app.post('/gstreports', function(req,res){
   var sp = req.body.sp; //"sale";
   var gsttable = req.body.gsttable;
   var typ = "report";
+  let db_info = req.body.identity;
+  let tclc_db = mlog.MongoConnect(db_info);
+  var tclc = tclc_db[0];
+  var mgodb = tclc_db[1];
+  var client = tclc_db[2];
   //var taxslab = ["12", "5", "18"];
   var taxslab = req.body.taxslab; //[0, 5, 12, 18, 28]; // tax rate must include array of integers;
   var agreegate = req.body.agreegate;
   var idf = req.body.idf;
-  if(Object.keys(mlog.tclc).length>0){
+  if(Object.keys(tclc).length>0){
       
-      qry.GST_REPORT(mlog.tclc, ledgid, billas, itype, frm, tod, sp, typ, taxslab, fyear, async function(data){
+      qry.GST_REPORT(tclc, ledgid, billas, itype, frm, tod, sp, typ, taxslab, fyear, async function(data){
       //var newobj = {0:[], 5:[], 12:[], 18:[], 28:[]};
         if(gsttable==="b2cs"){
           var newobj = {0:{"gst":0,"netamt":0,"amt":0,"cgst":0,"sgst":0,"tdisamt":0,"qty":0,"taxcount":0,"-":"","--":"","---":"","":"",}, 
@@ -589,13 +628,18 @@ app.post('/payrcptsearch', function(req,res){
   var sp = req.body.sp; 
   var ledgid = req.body.ledgid; 
   var fyear = rscr.fyear; 
+  let db_info = req.body.identity;
+  let tclc_db = mlog.MongoConnect(db_info);
+  var tclc = tclc_db[0];
+  var mgodb = tclc_db[1];
+  var client = tclc_db[2];
   var typ = 2; // typ = {1:"purchase",2:"sale",3:"payment",4:"receipt",5:[reserved for cash table],6:"",7:"bank",8:"",9:""}
   var trtype = "2"; //{"1":"cash transaction", "2":"credit transaction","3":"other account transaction","7":"bank transaction"};
   if(sp==="receipt"){typ=2};
   if(sp==="payment"){typ=1};
   console.log("hiii");
-  if(Object.keys(mlog.tclc).length>0){
-    PRSearch(mlog.tclc, idf, sp, typ, trtype, ledgid, fyear, function(data){
+  if(Object.keys(tclc).length>0){
+    PRSearch(tclc, idf, sp, typ, trtype, ledgid, fyear, function(data){
       console.log(data);
       res.header("Access-Control-Allow-Origin", "*").json(data);
     })
