@@ -7,13 +7,13 @@ const ejs = require('ejs');
 const cors = require('cors');
 const multer = require('multer');
 const medifun = require('./medifun')
-
+const mongoose = require('mongoose');
 var fs = require('fs');
 var formidable = require('formidable'); // npm install formidable@v2  , import formidable from "formidable" for npm install formidable@v3; 
 var shopDir = "public//assets//img//shop";
 var naImgPath = "public//assets//img//na.jpg";
 var imgvalidator = {'img' : "", 'imgbool' : false, 'username':'', 'flag':'1'};
-
+const Member = require("./insertuser");
 const { MongoClient , ObjectId} = require('mongodb');
 const { log } = require('console');
 const options = {
@@ -616,6 +616,7 @@ app.post('/register_member', upload.single('shopimage'), async function (req, re
       latitude,
       longitude
     } = req.body;
+
     const imageFile = req.file;
     if (imageFile) {
       newFilename = `${username}.jpg`;
@@ -629,23 +630,25 @@ app.post('/register_member', upload.single('shopimage'), async function (req, re
       newFilename = `${username}.jpg`;
       const defaultImagePath = Path.join('public', 'assets', 'defaultowner.png');
       fs.copyFileSync(defaultImagePath, Path.join( 'public','uploads', 'ownerimage', newFilename));
-    const memberData = {
-      'username' : username,
-      'name' : firstname,
-      'lastname' : lastname,
-      'phone' : phoneNo,
-      'password' :password,
-      'shopName' : shopName,
-      'drugLicenseNo' : drugLicenseNo,
-      'GSTnumber' : GSTnumber,
-      'state' : state,
-      'district' : district,
-      'locality' : locality,
-      'address' : address,
-      'latitude' : latitude,
-      'longitude' : longitude,
-      'verified' : false,
-    };
+      const memberData = new Member({
+        username: username,
+        name: firstname,
+        lastname: lastname,
+        phone: phoneNo,
+        password: password,
+        shopName: shopName,
+        drugLicenseNo: drugLicenseNo,
+        GSTnumber: GSTnumber,
+        state: state,
+        district: district,
+        locality: locality,
+        address: address,
+        location: {
+          type: 'Point',
+          coordinates: [parseFloat(longitude), parseFloat(latitude)]
+        },
+        verified: false
+      });
     const mnogmemberdb = MemberConnect();
     mnogmemberdb.collection("members").insertOne(memberData).then(function(members){
           rscr['info'] = username+' - Add Successfully !';
