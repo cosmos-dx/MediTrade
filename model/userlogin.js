@@ -6,6 +6,7 @@ const Path = require("path");
 const ejs = require('ejs');
 const cors = require('cors');
 const multer = require('multer');
+const bcrypt = require('bcrypt');
 const medifun = require('./medifun')
 const mongoose = require('mongoose');
 var fs = require('fs');
@@ -228,12 +229,27 @@ function CreateDefaultData(totalcl){
     DefaultInsert(totalcl, ["itm"], [item_obj3], "DEFAULT ITEM 3");  
 }
 
-function MemberConnect(){
-  var client = new MongoClient('mongodb://0.0.0.0:27017');
-  try {client.connect().then(()=> {});}
-  catch(e) {console.log(e);}
-  return client.db("memberdb");
+
+
+let isFirstConnection = true;
+function MemberConnect() {
+  const client = new MongoClient('mongodb://0.0.0.0:27017');
+  try {
+    client.connect();
+    const db = client.db("memberdb");
+    if (isFirstConnection) {
+      return db.collection('members').createIndex({ 'location.coordinates': '2dsphere' }).then(()=>{
+        isFirstConnection = false;
+        return db;
+      }); 
+    }
+    return db;
+  } catch (e) {
+    console.error(e);
+  }
 }
+
+
 async function AdminConnect() {
   const client = new MongoClient('mongodb://0.0.0.0:27017');
   
@@ -259,6 +275,8 @@ async function AdminConnect() {
     throw e;
   }
 }
+
+
 
 function MongoConnect(getuseraddress) {
   var url = 'mongodb://0.0.0.0:27017//' + getuseraddress;
@@ -384,16 +402,19 @@ app.get('/medilogin', function(req, res) {
 let parentDirectory = Path.dirname(__dirname);
 app.use(express.static(Path.join(parentDirectory, 'public')));
 
+
 app.post('/medilogin', async function(request, response) {
   var username = request.body.username;
   var password = request.body.password;
-  console.log(username, password);
+    
   if (username && password) {
     try {
       const mnogmemberdb = MemberConnect();
-      const members = await mnogmemberdb.collection("members").find({"username":username,"password":password}).toArray();
+      const members = await mnogmemberdb.collection("members").find({"username":username}).toArray();
+      const passwordMatch = await bcrypt.compare(password, members[0]['password']);
 
-      if (members.length > 0) {
+
+      if (passwordMatch) {
         let results = members[0];
         rscr = medifun.readRSCR(); 
         var dbfname = results["username"] + "_" + results["phone"] + "_" + results["username"];
@@ -630,12 +651,13 @@ app.post('/register_member', upload.single('shopimage'), async function (req, re
       newFilename = `${username}.jpg`;
       const defaultImagePath = Path.join('public', 'assets', 'defaultowner.png');
       fs.copyFileSync(defaultImagePath, Path.join( 'public','uploads', 'ownerimage', newFilename));
+      const hashedPassword = await bcrypt.hash(password, 10);
       const memberData = new Member({
         username: username,
         name: firstname,
         lastname: lastname,
         phone: phoneNo,
-        password: password,
+        password: hashedPassword,
         shopName: shopName,
         drugLicenseNo: drugLicenseNo,
         GSTnumber: GSTnumber,
@@ -660,7 +682,11 @@ app.post('/register_member', upload.single('shopimage'), async function (req, re
     console.error('Error:', error);
     res.status(500).json({ success: false, message: 'Error In Registration.' });
   }
+  
 });
+
+
+
 app.post('/ownerimage', upload.single('ownerimage'), async function (req, res) {
       const {filename} = req.body;
       const imageFile = req.file;
@@ -797,6 +823,7 @@ app.get('/selectfyear', function(req, res) {
 module.exports.rscr = rscr
 module.exports.app = app
 module.exports.tclc = tclc; 
+module.exports.MemberConnect = MemberConnect;
 module.exports.MongoConnect = MongoConnect;
 module.exports.AdminMongoConnect = AdminMongoConnect;
 module.exports.sessions = sessions

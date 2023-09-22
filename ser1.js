@@ -7,6 +7,7 @@ var ejs = require('ejs');
 const myapp = require('./model/userlogin');
 const mainpage = require('./model/mainsp');
 const sbsearch = require('./model/dbsearch');
+const landingpageroutes = require('./model/landingpages');
 const { hostname } = require('os');
 // const customer_model = require('./rmsconfig/model/customer');
 const wifi = '192.168.29.116'  ;

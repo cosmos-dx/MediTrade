@@ -13,7 +13,6 @@ app.set('views',__dirname + '/vws');
 
 app.get('/partysearchenter',async function(req,res){ 
   var column = "name";
-  console.log("aehi jaa");
   var idf = req.query.idf.trim(); // removal of white space is important
   let db_info = req.query.identity;
   if (typeof req.query.getcolumn == 'undefined'){
