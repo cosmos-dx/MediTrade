@@ -1,14 +1,17 @@
 
 const express = require('express');
+const axios = require('axios');
 const sessions = require('express-session');
 const bodyParser = require('body-parser');
 const Path = require("path");
 const ejs = require('ejs');
 const cors = require('cors');
 const multer = require('multer');
+const ReadText = require('text-from-image')
 const bcrypt = require('bcrypt');
 const medifun = require('./medifun')
 const mongoose = require('mongoose');
+const tessract = require("tesseract.js");
 var fs = require('fs');
 var formidable = require('formidable'); // npm install formidable@v2  , import formidable from "formidable" for npm install formidable@v3; 
 var shopDir = "public//assets//img//shop";
@@ -364,6 +367,49 @@ app.get('/',(req,res) => {
   res.json({success: "jai Shree ram"})
 });
 
+app.post('/initland',async (req,res) => { 
+  let district =  req.body.place;
+  let usersList;
+  try {
+    const db = await MemberConnect();
+    usersList = await db.collection('members').find({ district: district }).toArray();
+
+    const userData = [];
+    for (const user of usersList) {
+      const { _id, username, name, shopName, GSTnumber,
+        state, district,location, rating, address, tagline } = user;
+
+      const imagePath = `public/uploads/${username}.jpg`;
+      const ownerimagePath = `public/uploads/ownerimage/${username}.jpg`;
+      userData.push({ _id, username, name, shopName, GSTnumber,
+          state, district,location, rating,imagePath,address, ownerimagePath, tagline });
+    }
+    res.json(userData);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+app.post('/settagline', async (req, res) => {
+  try {
+    const { username, tagline } = req.body.userdata;
+    if (!username || !tagline) {
+      return res.status(400).json({ error: 'Username and tagline are required fields' });
+    }
+    const db = await MemberConnect();
+    const result = await db.collection('members').updateOne(
+      { username: username },
+      { $set: { tagline: tagline } }
+    );
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: 'Member not found' });
+    }
+    res.status(200).json({ message: 'Tagline updated successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
 app.get('/mycart', function(req,res){
 
 
@@ -649,7 +695,7 @@ app.post('/register_member', upload.single('shopimage'), async function (req, re
       fs.copyFileSync(defaultImagePath, Path.join('public','uploads', newFilename));
     }
       newFilename = `${username}.jpg`;
-      const defaultImagePath = Path.join('public', 'assets', 'defaultowner.png');
+      const defaultImagePath = Path.join('public', 'assets', 'defaultowner.jpg');
       fs.copyFileSync(defaultImagePath, Path.join( 'public','uploads', 'ownerimage', newFilename));
       const hashedPassword = await bcrypt.hash(password, 10);
       const memberData = new Member({
@@ -694,6 +740,49 @@ app.post('/ownerimage', upload.single('ownerimage'), async function (req, res) {
       fs.renameSync(imageFile.path, `public/uploads/ownerimage/${newFilename}`);
   res.json({ success: true, message: 'Owner image uploaded successfully!' });
 });
+
+
+
+app.post("/chatbot", upload.single("reportfile"), async (req, res) => {
+  
+  if (req.file) {
+    let filename = req.file.filename;
+    const imagedata = await tessract.recognize(`public/uploads/${filename}`, 'eng', {});
+    req.body.question = imagedata.data.text + "Tell concisely." + req.body.hindi;
+    fs.unlink(`public/uploads/${filename}`, (err) => {
+      if (err) {
+        console.error(`Error deleting file: ${err}`);
+      } else {
+        console.log(`File '${filename}' deleted successfully.`);
+      }
+    });
+  }
+  // console.log(req.body);s
+  let sending_data = JSON.stringify({
+    ip: {
+      ip: "192.168.1.1",
+    },
+    question: req.body.question,
+  });
+
+  try {
+    const response = await axios.post('https://medicalgpt.online/data', sending_data, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    res.json(response.data);
+  } catch (error) {
+    if (error.response) {
+      console.error(`Error response from server: ${error.response.status}`);
+      console.error(`Response data: ${JSON.stringify(error.response.data)}`);
+    } else {
+      console.error(`Error sending request: ${error.message}`);
+    }
+    res.status(500).send('Internal Server Error');
+  }
+});
+
 app.post('/save_member', function(req, res) {
     var fvar = req.body;
     var fmval = fvar.phone;
@@ -827,5 +916,4 @@ module.exports.MemberConnect = MemberConnect;
 module.exports.MongoConnect = MongoConnect;
 module.exports.AdminMongoConnect = AdminMongoConnect;
 module.exports.sessions = sessions
-
-
+module.exports.upload = upload;

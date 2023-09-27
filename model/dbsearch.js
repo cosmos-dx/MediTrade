@@ -34,6 +34,7 @@ app.get('/partysearchenter',async function(req,res){
  
  });
  
+
  app.post('/partysearchenter', (req, res) => {
    //Update recdic only on POST method on ejs pages
    var raw_idf = req.body.idf.split("||");
@@ -48,7 +49,6 @@ app.get('/partysearchenter',async function(req,res){
    
  });
  
-
 app.get('/itemsearchenter',function(req,res){
   var column = "name";
   var idf = req.query.idf.trim(); // removal of white space is important

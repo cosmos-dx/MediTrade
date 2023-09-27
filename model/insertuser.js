@@ -1,3 +1,4 @@
+const { Double } = require('mongodb');
 const mongoose = require('mongoose');
 
 
@@ -26,8 +27,12 @@ const membersSchema = new mongoose.Schema({
     },
   },
   verified: Boolean,
+  rating: Number,
+  tagline: {
+    type: String,
+    default: "Your Budget's Best Friend - Our Reliable Products.",
+  },
 });
-
 
 const Member = mongoose.model('membersnew', membersSchema);
 
