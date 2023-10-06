@@ -58,27 +58,37 @@ app.get('/nearestShops',async function(req,res){
         res.json({"success": data})
 });
 
-// app.post('/chatbot', mlog.upload.single('reportfiles'), async function (req, res) {
-//     // const {filename} = req.body;
-//     console.log(req.body);
-//     // const imageFile = req.file;
-//     // newFilename = `${filename}.jpg`;
-//     // fs.renameSync(imageFile.path, `public/uploads/reportfiles/${newFilename}`);
-//     // try {
-        
-//     //     // ReadText('./image.png').then(text => {
-//     //     //     console.log(text);
-//     //     // }).catch(err => {
-//     //     //     console.log(err);
-//     //     // })
-//     //   const requestData = req.body;
-//     //   const externalApiResponse = await axios.post('https://medicalgpt.online/data', requestData);
-//     //   const responseData = externalApiResponse.data;
-  
-//     //   res.status(200).json(responseData);
-//     // } catch (error) {
-//     //   console.error(error);
-//     //   res.status(500).json({ error: 'Internal server error' });
-//     // }
-//   });
-  
+app.post('/searchMedicine',async (req,res) => { 
+    // console.log(req.body);
+    let username = req.body.shopOwnerData.username;
+    let phone = req.body.shopOwnerData.phone;
+    let dbname = username+"_"+phone+"_"+username;
+    let searchMethod = req.body.searchMethod;
+    let searchValue = req.body.searchValue.toUpperCase();
+    let tclc_db = mlog.MongoConnect(dbname);
+    var tclc = tclc_db[0];
+    var mgodb = tclc_db[1];
+    var client = tclc_db[2];
+    let data;
+    if(searchMethod == "name"){
+         data = await tclc["itm"].find({"name": new RegExp("^" + searchValue, "i")}).limit(5).toArray();
+    }
+    else{       
+         data = await tclc["itm"].find({"igroup": new RegExp("^" + searchValue, "i")}).limit(5).toArray();
+    }
+    
+    const searchedData = []; 
+    data.forEach(item => {
+        const perProduct = {
+            name: item['name'],
+            pack: item['pack'],
+            mrp: item['mrp'],
+            gst: item['gst'],
+            salt: item['igroup'],
+            _id: item["_id"]
+        };
+        searchedData.push(perProduct);
+    });
+
+    res.json({"success" : searchedData});
+});

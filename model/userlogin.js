@@ -377,12 +377,12 @@ app.post('/initland',async (req,res) => {
     const userData = [];
     for (const user of usersList) {
       const { _id, username, name, shopName, GSTnumber,
-        state, district,location, rating, address, tagline } = user;
+        state, district,location, rating, address, tagline, phone } = user;
 
       const imagePath = `public/uploads/${username}.jpg`;
       const ownerimagePath = `public/uploads/ownerimage/${username}.jpg`;
       userData.push({ _id, username, name, shopName, GSTnumber,
-          state, district,location, rating,imagePath,address, ownerimagePath, tagline });
+          state, district,location, rating,imagePath,address, ownerimagePath, tagline, phone });
     }
     res.json(userData);
   } catch (error) {

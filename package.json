@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "axios": "^1.5.1",
     "bcrypt": "^5.1.1",
     "body-parser": "^1.20.2",
     "cors": "^2.8.5",
@@ -10,6 +11,8 @@
     "mongodb": "^5.4.0",
     "mongoose": "^7.5.2",
     "multer": "^1.4.5-lts.1",
-    "nodemon": "^2.0.22"
+    "nodemon": "^2.0.22",
+    "tesseract.js": "^4.1.2",
+    "text-from-image": "^1.1.1"
   }
 }
