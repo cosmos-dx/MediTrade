@@ -744,7 +744,7 @@ app.post('/ownerimage', upload.single('ownerimage'), async function (req, res) {
 
 
 app.post("/chatbot", upload.single("reportfile"), async (req, res) => {
-  
+  console.log("----->");
   if (req.file) {
     let filename = req.file.filename;
     const imagedata = await tessract.recognize(`public/uploads/${filename}`, 'eng', {});
@@ -757,16 +757,16 @@ app.post("/chatbot", upload.single("reportfile"), async (req, res) => {
       }
     });
   }
-  // console.log(req.body);s
+
   let sending_data = JSON.stringify({
     ip: {
       ip: "192.168.1.1",
     },
     question: req.body.question,
   });
-
+  console.log("----------------------------",sending_data,"---------------------------");
   try {
-    const response = await axios.post('https://medicalgpt.online/data', sending_data, {
+    const response = await axios.post('https://backend.medicalgpt.info/data', sending_data, {
       headers: {
         'Content-Type': 'application/json',
       },
@@ -774,6 +774,7 @@ app.post("/chatbot", upload.single("reportfile"), async (req, res) => {
     res.json(response.data);
   } catch (error) {
     if (error.response) {
+      console.log(error);
       console.error(`Error response from server: ${error.response.status}`);
       console.error(`Response data: ${JSON.stringify(error.response.data)}`);
     } else {
@@ -793,7 +794,6 @@ app.post('/save_member', function(req, res) {
 
     var imgname = getUniqueIdDate()+".jpg";
     var maximagesize = 1000000;
-    // ## for default user profile image when imgtransit not exists ## 
     var imgtransit = imgtransit_Dir(imgname); 
     let form = new formidable.IncomingForm();
     form.uploadDir = imgtransit;
